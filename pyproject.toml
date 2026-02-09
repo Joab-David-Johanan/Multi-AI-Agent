@@ -9,6 +9,7 @@ description = "Multi-agent AI app"
 dependencies = [
     "langchain>=0.2.0",
     "langchain-groq",
+    "langchain-openai",
     "langchain-community",
     "python-dotenv",
     "uvicorn",

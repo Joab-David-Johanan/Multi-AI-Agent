@@ -1,6 +1,7 @@
 langchain_core
 langchain-classic
 langchain-groq
+langchain-openai
 langchain-community
 langgraph
 python-dotenv
