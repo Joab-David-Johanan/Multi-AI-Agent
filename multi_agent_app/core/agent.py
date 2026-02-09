@@ -10,7 +10,7 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 from multi_agent_app.config.settings import settings
 
 
-def generate_response(llm_model, query, allow_search):
+def generate_response(llm_model, query, allow_search, system_prompt):
 
     llm = ChatGroq(model=llm_model)
     web_results = [TavilySearchResults(max_results=2)] if allow_search else []
@@ -18,12 +18,7 @@ def generate_response(llm_model, query, allow_search):
     agent = create_agent(
         model=llm,
         tools=[web_results],
-        system_prompt=(
-            "You are a research agent.\n"
-            "- Use web_search and InternalResearchNotes to answer research questions.\n"
-            "- Provide clear, factual, concise explanations.\n"
-            "- Do NOT do arithmetic unless it is trivial."
-        ),
+        system_prompt=system_prompt,
     )
 
     # define the all messages with key 'messages'
