@@ -1,0 +1,24 @@
+/* Make ALL Streamlit buttons green */
+div[data-testid="stButton"] button,
+div[data-testid="stDownloadButton"] button {
+    background-color: #16a34a !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    padding: 0.6rem 1rem !important;
+    transition: background-color 0.2s ease !important;
+}
+
+/* Hover effect */
+div[data-testid="stButton"] button:hover,
+div[data-testid="stDownloadButton"] button:hover {
+    background-color: #15803d !important;
+}
+
+/* Remove grey focus outline */
+div[data-testid="stButton"] button:focus,
+div[data-testid="stDownloadButton"] button:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.3) !important;
+}

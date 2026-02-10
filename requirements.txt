@@ -9,3 +9,4 @@ uvicorn
 fastapi
 pydantic 
 streamlit
+reportlab
