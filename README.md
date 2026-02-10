@@ -1,15 +1,11 @@
 
 ![Python](https://img.shields.io/badge/Python-3.10-blue)
-
 ![LangChain](https://img.shields.io/badge/LangChain-LLM%20Framework-purple)
 ![LangGraph](https://img.shields.io/badge/LangGraph-Agent%20Orchestration-blueviolet)
-
 ![FastAPI](https://img.shields.io/badge/FastAPI-Backend%20API-teal)
 ![Streamlit](https://img.shields.io/badge/Streamlit-App%20Framework-brightgreen)
-
 ![MLOps](https://img.shields.io/badge/MLOps-CI%2FCD%20Pipeline-yellow)
 ![Jenkins](https://img.shields.io/badge/Jenkins-CI%2FCD-red)
-
 ![AWS](https://img.shields.io/badge/AWS-Cloud-orange)
 ![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
 
