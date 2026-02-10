@@ -5,6 +5,9 @@
 # git file
 .git
 
+# code workspace
+*.code-workspace
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
