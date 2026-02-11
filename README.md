@@ -77,7 +77,7 @@ AI_agent_app
 git clone https://github.com/Joab-David-Johanan/Multi-AI-Agent
 ```
 
-### 2. Create a conda environment after opening the repository
+### 2. Install the project as a package after opening the repository
 
 ```bash
 pip install -e .
