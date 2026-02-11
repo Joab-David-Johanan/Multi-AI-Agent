@@ -15,7 +15,6 @@ app = FastAPI(title="MULTI AI AGENT")
 # Data model defining request structure from frontend
 class RequestState(BaseModel):
     assistant_type: str
-    assistant_prompt: dict[str, str]
     llm_type: str
     model_name: str
     messages: list[str]
@@ -53,7 +52,6 @@ async def chat_endpoint(request: RequestState):
         # Call async agent response
         response = await generate_response(
             request.assistant_type,
-            settings.ASSISTANT_PROMPTS,
             request.llm_type,
             request.model_name,
             query,

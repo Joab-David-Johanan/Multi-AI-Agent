@@ -90,8 +90,6 @@ with st.sidebar:
 
     assistant_type = st.selectbox("Choose your AI assistant:", settings.ASSISTANT_TYPES)
 
-    assistant_prompt = settings.ASSISTANT_PROMPTS[assistant_type]
-
     llm_type = st.radio("LLM provider", settings.ALLOWED_LLM_TYPES)
 
     if llm_type == "Groq":
@@ -130,7 +128,6 @@ if user_input and user_input.strip() != "":
     else:
         payload = {
             "assistant_type": assistant_type,
-            "assistant_prompt": settings.ASSISTANT_PROMPTS,
             "llm_type": llm_type,
             "model_name": selected_model,
             "messages": [user_input],
@@ -153,7 +150,7 @@ if user_input and user_input.strip() != "":
                 if enable_cache:
                     st.session_state.cache_store[user_input] = ai_reply
             else:
-                st.error("Backend error")
+                st.error(response.text)
                 ai_reply = "Error"
 
         except Exception as e:
@@ -209,8 +206,6 @@ if any(item["role"] == "assistant" for item in st.session_state.chat_history):
 
             if item["role"] == "assistant":
                 st.markdown(f"Mode: {item['mode']}")
-                st.markdown(f"Model: {item['model']}")
-                st.markdown(f"Tool: {item['tool']}")
                 st.markdown(f"Time: {item['time']} seconds")
 
             st.markdown("---")

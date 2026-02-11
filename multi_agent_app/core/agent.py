@@ -4,6 +4,9 @@ from langchain.agents import create_agent
 from langchain_tavily import TavilySearch
 from langchain_core.messages import AIMessage
 
+# getting the assistant prompt dictionary
+from multi_agent_app.config.settings import settings
+
 
 # Return the correct LLM instance based on provider selected in the UI
 def get_llm(provider: str, model_name: str):
@@ -18,38 +21,18 @@ def get_llm(provider: str, model_name: str):
         raise ValueError("Unsupported LLM provider")
 
 
-# Return the correct system prompt based on selected assistant
-def get_correct_prompt(assistant: str, assistant_prompt: dict[str, str]):
-
-    if assistant == "General":
-        return assistant_prompt["General"]
-
-    elif assistant == "Medical":
-        return assistant_prompt["Medical"]
-
-    elif assistant == "Financial":
-        return assistant_prompt["Financial"]
-
-    elif assistant == "Research":
-        return assistant_prompt["Research"]
-
-    else:
-        raise ValueError("Unsupported AI assistant")
-
-
 # Main function responsible for generating AI responses
 # This function is asynchronous because model invocation is async
 async def generate_response(
     assistant_type: str,
-    all_assistant_prompts: dict[str, str],
     llm_type: str,
     llm_model: str,
     query: str,
     allow_search: bool,
 ):
-
+    assistant_type = assistant_type
     # Select assistant-specific instructions
-    assistant_prompt = get_correct_prompt(assistant_type, all_assistant_prompts)
+    assistant_prompt = settings.ASSISTANT_PROMPTS[assistant_type]
 
     # Initialize the selected LLM
     llm = get_llm(llm_type, llm_model)
@@ -61,10 +44,16 @@ async def generate_response(
     # This prevents irrelevant tool usage.
     basic_question_starters = ["what is", "define", "explain"]
 
+    price_keywords = ["price", "now", "current", "today"]
+
     use_search = allow_search
 
+    # Some models misbehave with trailing spaces.
+    query = query.strip()
+
     if any(query.lower().startswith(k) for k in basic_question_starters):
-        use_search = False
+        if not any(p in query.lower() for p in price_keywords):
+            use_search = False
 
     # Add Tavily search tool only if needed
     tools = [TavilySearch(max_results=2)] if use_search else []
@@ -73,20 +62,17 @@ async def generate_response(
     # Improved base guardrails
     # ------------------------------------------------------------------
     BASE_SYSTEM_PROMPT = """
-You are a professional AI assistant.
+    You are a professional AI assistant.
 
-Rules:
-- Always answer the user's question directly and immediately.
-- Do not greet the user.
-- Do not ask the user what they want to know.
-- Do not ask them to clarify unless absolutely necessary.
-- Do not restate the question.
-- Only use web search if the question requires current or real-time information.
-- Do not use web search for general knowledge explanations.
-- If web search results are unrelated, ignore them.
-- Prefer accurate domain knowledge over irrelevant summaries.
-- If uncertain, clearly state limitations.
-"""
+    Strict rules:
+    - You MUST answer the user's question immediately.
+    - You MUST NOT introduce yourself.
+    - You MUST NOT say you are ready to help.
+    - You MUST NOT ask what the question is.
+    - Never generate meta conversation.
+    - Provide the final answer directly.
+    - If the question is about current prices, provide the latest known estimate and mention it may not be real-time.
+    """
 
     # Combine guardrails with assistant-specific instructions
     final_system_prompt = (
