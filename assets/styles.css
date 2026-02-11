@@ -1,24 +1,70 @@
-/* Make ALL Streamlit buttons green */
-div[data-testid="stButton"] button,
-div[data-testid="stDownloadButton"] button {
-    background-color: #16a34a !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 10px !important;
-    font-weight: 600 !important;
-    padding: 0.6rem 1rem !important;
-    transition: background-color 0.2s ease !important;
+/* -------- GLOBAL BACKGROUND -------- */
+.stApp {
+    background: linear-gradient(135deg, #eef2f7 0%, #e2e8f0 100%) !important;
 }
 
-/* Hover effect */
+/* -------- SIDEBAR -------- */
+section[data-testid="stSidebar"] {
+    background: #0f172a !important;
+    color: #f8fafc !important;
+}
+
+section[data-testid="stSidebar"] * {
+    color: #f8fafc !important;
+}
+
+/* Sidebar selectboxes */
+section[data-testid="stSidebar"] .stSelectbox div {
+    background-color: #1e293b !important;
+    border-radius: 8px !important;
+}
+
+/* -------- CHAT MESSAGES -------- */
+div[data-testid="stChatMessage"] {
+    border-radius: 16px !important;
+    padding: 1rem !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.05) !important;
+    margin-bottom: 1rem !important;
+}
+
+/* User message bubble */
+div[data-testid="stChatMessage"]:has(div[data-testid="chatAvatarIcon-user"]) {
+    background: #dcfce7 !important;
+}
+
+/* Assistant message bubble */
+div[data-testid="stChatMessage"]:has(div[data-testid="chatAvatarIcon-assistant"]) {
+    background: #ffffff !important;
+}
+
+/* -------- INPUT BOX -------- */
+div[data-testid="stChatInput"] textarea {
+    border-radius: 12px !important;
+    border: 1px solid #e2e8f0 !important;
+    padding: 0.8rem !important;
+}
+
+/* -------- BUTTONS (Keep Green Theme) -------- */
+div[data-testid="stButton"] button,
+div[data-testid="stDownloadButton"] button {
+    background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    padding: 0.6rem 1rem !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4) !important;
+}
+
 div[data-testid="stButton"] button:hover,
 div[data-testid="stDownloadButton"] button:hover {
-    background-color: #15803d !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 18px rgba(34, 197, 94, 0.5) !important;
 }
 
 /* Remove grey focus outline */
 div[data-testid="stButton"] button:focus,
 div[data-testid="stDownloadButton"] button:focus {
     outline: none !important;
-    box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.3) !important;
 }

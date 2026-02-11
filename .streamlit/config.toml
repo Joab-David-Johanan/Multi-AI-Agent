@@ -1,9 +1,9 @@
 [theme]
 base = "light"
 
-primaryColor = "#16a34a"
-backgroundColor = "#f8fafc"
+primaryColor = "#22c55e"  # slightly brighter green
+backgroundColor = "#eef2f7"  # soft slate grey
 secondaryBackgroundColor = "#ffffff"
-textColor = "#111827"
+textColor = "#0f172a"
 
 font = "sans serif"
