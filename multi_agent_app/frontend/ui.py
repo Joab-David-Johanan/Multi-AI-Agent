@@ -7,7 +7,6 @@ from io import BytesIO
 # PDF generation (must use reportlab.platypus)
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib import colors
 
 from multi_agent_app.common.logger import get_logger
 from multi_agent_app.config.settings import settings
@@ -29,7 +28,6 @@ def load_css():
 
 # Generate PDF of entire conversation history
 def generate_pdf(chat_history):
-
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer)
     elements = []
@@ -38,33 +36,30 @@ def generate_pdf(chat_history):
     normal_style = styles["Normal"]
 
     for item in chat_history:
-
         role = item["role"].capitalize()
         message = item["message"]
         mode = item.get("mode")
         time_taken = item.get("time")
 
-        role_paragraph = Paragraph(f"<b>{role}</b>", normal_style)
-        elements.append(role_paragraph)
+        elements.append(Paragraph(f"<b>{role}</b>", normal_style))
         elements.append(Spacer(1, 6))
-
-        message_paragraph = Paragraph(message.replace("\n", "<br/>"), normal_style)
-        elements.append(message_paragraph)
+        elements.append(Paragraph(message.replace("\n", "<br/>"), normal_style))
         elements.append(Spacer(1, 6))
 
         if role == "Assistant":
-            meta_paragraph = Paragraph(
-                f"<font size=9 color=grey>Mode: {mode} | Time: {time_taken} seconds</font>",
-                normal_style,
+            elements.append(
+                Paragraph(
+                    f"<font size=9 color=grey>Mode: {mode} | Assistant: {item.get('assistant')} | "
+                    f"Model: {item.get('model')} | Tool: {item.get('tool')} | Time: {time_taken} seconds</font>",
+                    normal_style,
+                )
             )
-            elements.append(meta_paragraph)
             elements.append(Spacer(1, 12))
 
         elements.append(Spacer(1, 12))
 
     doc.build(elements)
     buffer.seek(0)
-
     return buffer
 
 
@@ -74,7 +69,6 @@ load_css()
 st.markdown("## Multi AI Agent")
 st.caption("Latency comparison demo")
 
-
 # Initialize session state variables
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -82,10 +76,8 @@ if "chat_history" not in st.session_state:
 if "cache_store" not in st.session_state:
     st.session_state.cache_store = {}
 
-
 # Sidebar configuration section
 with st.sidebar:
-
     st.header("Choose your configuration:")
 
     assistant_type = st.selectbox("Choose your AI assistant:", settings.ASSISTANT_TYPES)
@@ -102,22 +94,45 @@ with st.sidebar:
     allow_search = st.checkbox("Enable web search")
 
     st.subheader("Choose optimizations:")
-
     enable_cache = st.checkbox("Enable caching")
     enable_streaming = st.checkbox("Enable streaming output")
 
-
 st.divider()
 
+# ----------------------------
+# Render chat history FIRST
+# ----------------------------
+for item in st.session_state.chat_history:
+    with st.chat_message(item["role"]):
+        st.markdown(item["message"])
+
+        if item["role"] == "assistant" and item.get("time") is not None:
+            st.caption(
+                f"Mode: {item.get('mode')} | Model: {item.get('model')} | "
+                f"Assistant: {item.get('assistant')} | Tool: {item.get('tool')} | "
+                f"Time: {item.get('time')} seconds"
+            )
+
+# ----------------------------
+# Input
+# ----------------------------
 user_input = st.chat_input("Type your message")
 
-if user_input and user_input.strip() != "":
+if user_input and user_input.strip():
 
-    cache_hit = False
+    # Show user immediately (so question is never "missing")
+    with st.chat_message("user"):
+        st.markdown(user_input)
 
+    # Append user to history
     st.session_state.chat_history.append(
         {"role": "user", "message": user_input, "time": None, "mode": None}
     )
+
+    # Cache hit
+    cache_hit = False
+    ai_reply = ""
+    duration = 0.0
 
     if enable_cache and user_input in st.session_state.cache_store:
         cache_hit = True
@@ -132,26 +147,49 @@ if user_input and user_input.strip() != "":
             "model_name": selected_model,
             "messages": [user_input],
             "allow_search": allow_search,
+            "streaming": enable_streaming,
         }
 
         try:
-            start_time = time.time()
+            if enable_streaming:
+                start_time = time.time()
 
-            response = requests.post(
-                BACKEND_URL,
-                json=payload,
-                timeout=120,
-            )
+                response = requests.post(
+                    BACKEND_URL.replace("/chat", "/chat-stream"),
+                    json=payload,
+                    stream=True,
+                    timeout=120,
+                )
 
-            duration = round(time.time() - start_time, 2)
+                if response.status_code != 200:
+                    st.error(response.text)
+                    ai_reply = "Error"
+                    duration = 0
+                else:
+                    ai_reply = ""
 
-            if response.status_code == 200:
-                ai_reply = response.json().get("response", "")
-                if enable_cache:
-                    st.session_state.cache_store[user_input] = ai_reply
+                    with st.chat_message("assistant"):
+                        placeholder = st.empty()
+                        for chunk in response.iter_content(chunk_size=None):
+                            if chunk:
+                                text = chunk.decode("utf-8")
+                                ai_reply += text
+                                placeholder.markdown(ai_reply)
+
+                    duration = round(time.time() - start_time, 2)
+
             else:
-                st.error(response.text)
-                ai_reply = "Error"
+                start_time = time.time()
+                response = requests.post(BACKEND_URL, json=payload, timeout=120)
+                duration = round(time.time() - start_time, 2)
+
+                if response.status_code == 200:
+                    ai_reply = response.json().get("response", "")
+                    if enable_cache:
+                        st.session_state.cache_store[user_input] = ai_reply
+                else:
+                    st.error(response.text)
+                    ai_reply = "Error"
 
         except Exception as e:
             logger.error(str(e))
@@ -159,6 +197,7 @@ if user_input and user_input.strip() != "":
             ai_reply = "Error"
             duration = 0
 
+    # Mode label
     if cache_hit:
         mode = "Cache hit"
     elif enable_streaming and enable_cache:
@@ -170,32 +209,25 @@ if user_input and user_input.strip() != "":
     else:
         mode = "Live call"
 
+    # Append assistant ONCE (this prevents duplicates)
     st.session_state.chat_history.append(
         {
             "role": "assistant",
             "message": ai_reply,
             "time": duration,
             "mode": mode,
+            "assistant": assistant_type,
             "model": selected_model,
             "tool": allow_search,
         }
     )
 
     st.toast(f"{mode} in {duration} seconds")
+    st.rerun()
 
-
-# Render chat messages
-for item in st.session_state.chat_history:
-    with st.chat_message(item["role"]):
-        st.markdown(item["message"])
-
-        if item["role"] == "assistant" and item["time"] is not None:
-            st.caption(
-                f"Mode: {item['mode']} | Model: {item['model']} | Tool: {item['tool']} | Time: {item['time']} seconds"
-            )
-
-
-# Expanded conversation history with action buttons
+# ----------------------------
+# Expanded conversation history + actions
+# ----------------------------
 if any(item["role"] == "assistant" for item in st.session_state.chat_history):
 
     with st.expander("Conversation history", expanded=False):
@@ -205,24 +237,24 @@ if any(item["role"] == "assistant" for item in st.session_state.chat_history):
             st.markdown(item["message"])
 
             if item["role"] == "assistant":
-                st.markdown(f"Mode: {item['mode']}")
-                st.markdown(f"Time: {item['time']} seconds")
+                st.markdown(f"Mode: {item.get('mode')}")
+                st.markdown(f"Assistant: {item.get('assistant')}")
+                st.markdown(f"Model: {item.get('model')}")
+                st.markdown(f"Tool: {item.get('tool')}")
+                st.markdown(f"Time: {item.get('time')} seconds")
 
             st.markdown("---")
 
         col1, col2 = st.columns(2)
 
-        # Clear conversation button
         with col1:
             if st.button("Clear conversation"):
                 st.session_state.chat_history = []
                 st.session_state.cache_store = {}
                 st.rerun()
 
-        # Download PDF button
         with col2:
             pdf_file = generate_pdf(st.session_state.chat_history)
-
             st.download_button(
                 label="Download conversation (PDF)",
                 data=pdf_file,
