@@ -37,8 +37,12 @@ AI_agent_app
 │   └── config.toml
 ├── assets
 │   └── styles.css
+├── custom_jenkins
+│   └── Dockerfile
 ├── logs
-│   └── log_2026-02-10.log
+│   ├── log_2026-02-10.log
+│   ├── log_2026-02-11.log
+│   └── log_2026-02-12.log
 ├── multi_agent_app
 │   ├── backend
 │   │   ├── __init__.py
@@ -63,6 +67,7 @@ AI_agent_app
 ├── .env
 ├── .gitignore
 ├── AI_agent_app.code-workspace
+├── Dockerfile
 ├── README.md
 ├── pyproject.toml
 └── requirements.txt
