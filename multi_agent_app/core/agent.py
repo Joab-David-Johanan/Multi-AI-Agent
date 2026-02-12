@@ -1,21 +1,24 @@
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
-from langchain.agents import create_agent
+from langgraph.prebuilt import create_react_agent
 from langchain_tavily import TavilySearch
-from langchain_core.messages import AIMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from fastapi.responses import StreamingResponse
+import asyncio
+
 
 # getting the assistant prompt dictionary
 from multi_agent_app.config.settings import settings
 
 
 # Return the correct LLM instance based on provider selected in the UI
-def get_llm(provider: str, model_name: str):
+def get_llm(provider: str, model_name: str, streaming: bool):
 
     if provider == "Groq":
-        return ChatGroq(model=model_name)
+        return ChatGroq(model=model_name, streaming=streaming)
 
     elif provider == "OpenAI":
-        return ChatOpenAI(model=model_name)
+        return ChatOpenAI(model=model_name, streaming=streaming)
 
     else:
         raise ValueError("Unsupported LLM provider")
@@ -29,13 +32,14 @@ async def generate_response(
     llm_model: str,
     query: str,
     allow_search: bool,
+    enable_streaming: bool,
 ):
     assistant_type = assistant_type
     # Select assistant-specific instructions
     assistant_prompt = settings.ASSISTANT_PROMPTS[assistant_type]
 
     # Initialize the selected LLM
-    llm = get_llm(llm_type, llm_model)
+    llm = get_llm(provider=llm_type, model_name=llm_model, streaming=enable_streaming)
 
     # ------------------------------------------------------------------
     # NEW LOGIC: Disable search for basic knowledge questions
@@ -46,17 +50,21 @@ async def generate_response(
 
     price_keywords = ["price", "now", "current", "today"]
 
-    use_search = allow_search
-
     # Some models misbehave with trailing spaces.
     query = query.strip()
+
+    # tool search
+    use_search = allow_search
 
     if any(query.lower().startswith(k) for k in basic_question_starters):
         if not any(p in query.lower() for p in price_keywords):
             use_search = False
 
+    # streaming
+    streaming = enable_streaming
+
     # Add Tavily search tool only if needed
-    tools = [TavilySearch(max_results=2)] if use_search else []
+    tools = [TavilySearch(max_results=5)] if use_search else []
 
     # ------------------------------------------------------------------
     # Improved base guardrails
@@ -79,25 +87,46 @@ async def generate_response(
         BASE_SYSTEM_PROMPT + "\n\nAdditional instructions:\n" + assistant_prompt
     )
 
-    # Create LangChain agent
-    agent = create_agent(
-        model=llm,
-        tools=tools,
-        system_prompt=final_system_prompt,
-    )
+    # Create LangGraph agent
+    agent = create_react_agent(model=llm, tools=tools)
 
-    # Invoke agent asynchronously
-    response = await agent.ainvoke({"input": query})
+    state = {
+        "messages": [
+            SystemMessage(content=final_system_prompt),
+            HumanMessage(content=query),
+        ]
+    }
 
-    # Some LangChain versions return dictionary with "output"
-    if "output" in response:
-        return response["output"]
+    if streaming:
 
-    # Other versions return a messages list
-    if "messages" in response:
-        for message in reversed(response["messages"]):
-            if isinstance(message, AIMessage):
-                return message.content
+        # Run agent normally first
+        response = await agent.ainvoke(state)
 
-    # If response structure is unexpected
-    raise ValueError("Unexpected agent response structure")
+        final_text = ""
+
+        if "messages" in response:
+            for message in reversed(response["messages"]):
+                if isinstance(message, AIMessage):
+                    final_text = message.content
+                    break
+
+        async def fake_stream():
+            for char in final_text:
+                yield char
+                await asyncio.sleep(0.01)  # adjust speed here
+
+        return StreamingResponse(fake_stream(), media_type="text/plain")
+
+    else:
+
+        # Invoke agent asynchronously and no streaming response
+        response = await agent.ainvoke(state)
+
+        # Check messages list
+        if "messages" in response:
+            for message in reversed(response["messages"]):
+                if isinstance(message, AIMessage):
+                    return message.content
+
+        # If response structure is unexpected
+        raise ValueError("Unexpected agent response structure")
