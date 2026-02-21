@@ -2,7 +2,7 @@
 base = "light"
 
 primaryColor = "#22c55e"  # slightly brighter green
-backgroundColor = "#eef2f7"  # soft slate grey
+backgroundColor = "#ffffff"  # soft slate grey
 secondaryBackgroundColor = "#ffffff"
 textColor = "#0f172a"
 

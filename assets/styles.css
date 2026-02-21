@@ -1,6 +1,48 @@
-/* -------- GLOBAL BACKGROUND -------- */
+/* ========== GLOBAL APP BACKGROUND ========== */
 .stApp {
-    background: linear-gradient(135deg, #eef2f7 0%, #e2e8f0 100%) !important;
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+}
+
+/* Main content wrapper */
+.main {
+    background: transparent !important;
+}
+
+/* Inner content container (THIS is the grey box) */
+.block-container {
+    background: rgba(251, 251, 252, 0.08) !important;
+    backdrop-filter: blur(20px);
+    border-radius: 18px;
+    padding: 2rem !important;
+    margin-top: 1rem;
+    max-width: 1100px !important;
+}
+
+/* Remove white header bar */
+header {
+    background: transparent !important;
+}
+
+/* Remove toolbar white strip */
+[data-testid="stHeader"] {
+    background: transparent !important;
+}
+
+/* Remove bottom grey area behind chat input */
+[data-testid="stBottomBlockContainer"] {
+    background: transparent !important;
+}
+
+
+/* -------- FIX SIDEBAR TOP SPACING -------- */
+section[data-testid="stSidebar"] > div:first-child {
+    padding-top: 1rem !important;
+}
+
+/* remove extra top blank space */
+section[data-testid="stSidebar"] {
+    padding-top: 0rem !important;
+    margin-top: -35px !important;
 }
 
 /* -------- SIDEBAR -------- */
@@ -27,20 +69,26 @@ div[data-testid="stChatMessage"] {
     margin-bottom: 1rem !important;
 }
 
-/* User message bubble */
-div[data-testid="stChatMessage"]:has(div[data-testid="chatAvatarIcon-user"]) {
-    background: #dcfce7 !important;
+/* ========== USER MESSAGE ========== */
+div[data-testid="stChatMessage"]:has(
+    div[data-testid="stChatMessageAvatarUser"]
+) {
+    background: linear-gradient(135deg, #f5b7ae 0%, #f94b4b 100%) !important;
+    border-radius: 16px !important;
 }
 
-/* Assistant message bubble */
-div[data-testid="stChatMessage"]:has(div[data-testid="chatAvatarIcon-assistant"]) {
-    background: #ffffff !important;
+/* ========== ASSISTANT MESSAGE ========== */
+div[data-testid="stChatMessage"]:has(
+    div[data-testid="stChatMessageAvatarAssistant"]
+) {
+    background: linear-gradient(135deg, #e9f3e5 0%, #5df73b 100%) !important;
+    border-radius: 16px !important;
 }
 
 /* -------- INPUT BOX -------- */
 div[data-testid="stChatInput"] textarea {
     border-radius: 12px !important;
-    border: 1px solid #e2e8f0 !important;
+    border: 1px solid #c4f9d3 !important;
     padding: 0.8rem !important;
 }
 
@@ -54,13 +102,13 @@ div[data-testid="stDownloadButton"] button {
     font-weight: 600 !important;
     padding: 0.6rem 1rem !important;
     transition: all 0.2s ease !important;
-    box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4) !important;
+    box-shadow: 0 4px 14px rgba(73, 251, 53, 0.5) !important;
 }
 
 div[data-testid="stButton"] button:hover,
 div[data-testid="stDownloadButton"] button:hover {
     transform: translateY(-1px) !important;
-    box-shadow: 0 6px 18px rgba(34, 197, 94, 0.5) !important;
+    box-shadow: 0 6px 18px rgba(73, 251, 53, 0.5) !important;
 }
 
 /* Remove grey focus outline */
