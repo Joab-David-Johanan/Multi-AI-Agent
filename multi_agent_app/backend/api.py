@@ -18,6 +18,7 @@ class RequestState(BaseModel):
     llm_type: str
     model_name: str
     messages: list[str]
+    temperature: float
     allow_search: bool
     streaming: bool
 
@@ -46,6 +47,10 @@ async def chat_endpoint(request: RequestState):
     ):
         raise HTTPException(status_code=400, detail="Invalid model name")
 
+    # validate temperature values
+    if request.temperature not in settings.ALLOWED_TEMPERATURE_VALUES:
+        raise HTTPException(status_code=400, detail="Invalid temperature value")
+
     try:
         # Combine user messages into single query string
         query = "\n".join(request.messages)
@@ -55,6 +60,7 @@ async def chat_endpoint(request: RequestState):
             request.assistant_type,
             request.llm_type,
             request.model_name,
+            request.temperature,
             query,
             request.allow_search,
             False,  # never streams
@@ -103,6 +109,7 @@ async def chat_stream_endpoint(request: RequestState):
             request.assistant_type,
             request.llm_type,
             request.model_name,
+            request.temperature,
             query,
             request.allow_search,
             True,  # force streaming

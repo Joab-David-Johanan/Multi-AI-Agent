@@ -133,6 +133,9 @@ Be precise, neutral, and legally accurate.
         "gpt-5-mini-2025-08-07",
     ]
 
+    # Temperature ranges
+    ALLOWED_TEMPERATURE_VALUES = [i / 10 for i in range(0, 11)]
+
 
 # Create a single settings instance for the entire application
 settings = Settings()

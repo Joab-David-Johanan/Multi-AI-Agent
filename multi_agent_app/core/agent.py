@@ -12,13 +12,15 @@ from multi_agent_app.config.settings import settings
 
 
 # Return the correct LLM instance based on provider selected in the UI
-def get_llm(provider: str, model_name: str, streaming: bool):
+def get_llm(provider: str, model_name: str, streaming: bool, temperature: int):
 
     if provider == "Groq":
-        return ChatGroq(model=model_name, streaming=streaming)
+        return ChatGroq(model=model_name, streaming=streaming, temperature=temperature)
 
     elif provider == "OpenAI":
-        return ChatOpenAI(model=model_name, streaming=streaming)
+        return ChatOpenAI(
+            model=model_name, streaming=streaming, temperature=temperature
+        )
 
     else:
         raise ValueError("Unsupported LLM provider")
@@ -30,6 +32,7 @@ async def generate_response(
     assistant_type: str,
     llm_type: str,
     llm_model: str,
+    temperature: int,
     query: str,
     allow_search: bool,
     enable_streaming: bool,
@@ -39,7 +42,12 @@ async def generate_response(
     assistant_prompt = settings.ASSISTANT_PROMPTS[assistant_type]
 
     # Initialize the selected LLM
-    llm = get_llm(provider=llm_type, model_name=llm_model, streaming=enable_streaming)
+    llm = get_llm(
+        provider=llm_type,
+        model_name=llm_model,
+        streaming=enable_streaming,
+        temperature=temperature,
+    )
 
     # ------------------------------------------------------------------
     # NEW LOGIC: Disable search for basic knowledge questions
