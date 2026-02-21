@@ -40,7 +40,7 @@ def run_frontend():
     try:
         logger.info("Starting Frontend service")
         subprocess.run(
-            ["streamlit", "run", "multi_agent_app/frontend/ui.py"], check=True
+            ["streamlit", "run", "multi_agent_app/frontend/main.py"], check=True
         )
     except CustomException as e:
         logger.error("Problem with frontend service")
