@@ -15,8 +15,8 @@ Designed and deployed a configurable multi-agent LLM system enabling dynamic beh
 
 ### Built using the following techstack:
 
-- langchain
-- langgraph
+- LangChain
+- LangGraph
 - FastAPI
 - Streamlit
 - Docker
@@ -25,9 +25,9 @@ Designed and deployed a configurable multi-agent LLM system enabling dynamic beh
 - AWS
     - ECR
     - Fargate
-- groq models
-- openai models
-- tavily search
+- Groq models
+- Openai models
+- Tavily search
 
 ### Project Structure:
 
@@ -40,9 +40,14 @@ AI_agent_app
 ├── custom_jenkins
 │   └── Dockerfile
 ├── logs
+│   ├── log_20-02-2026.log
 │   ├── log_2026-02-10.log
 │   ├── log_2026-02-11.log
-│   └── log_2026-02-12.log
+│   ├── log_2026-02-12.log
+│   ├── log_2026-02-17.log
+│   ├── log_21-02-2026.log
+│   ├── log_22-02-2026.log
+│   └── log_26-02-2026.log
 ├── multi_agent_app
 │   ├── backend
 │   │   ├── __init__.py
@@ -59,9 +64,14 @@ AI_agent_app
 │   │   └── agent.py
 │   ├── frontend
 │   │   ├── __init__.py
-│   │   └── ui.py
+│   │   ├── chat_handler.py
+│   │   ├── history_ui.py
+│   │   ├── main.py
+│   │   ├── session.py
+│   │   ├── sidebar_ui.py
+│   │   └── utils_ui.py
 │   ├── __init__.py
-│   └── main.py
+│   └── launcher.py
 ├── scripts
 │   └── generate_tree.sh
 ├── .env
@@ -71,6 +81,7 @@ AI_agent_app
 ├── README.md
 ├── pyproject.toml
 └── requirements.txt
+
 ```
 
 
@@ -758,3 +769,4 @@ git push origin v1.0.0
 - LLM as a judge to evaluate assistant responses
 - Guardrails for better separation of concerns
 - Suggestions after assistant response to engage the user
+
