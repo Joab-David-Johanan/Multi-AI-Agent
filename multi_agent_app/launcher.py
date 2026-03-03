@@ -6,20 +6,63 @@ from multi_agent_app.common.logger import get_logger
 from multi_agent_app.common.custom_exception import CustomException
 
 logger = get_logger(__name__)
-
 load_dotenv()
 
-# Note:
-# backend host is 127.0.0.1
-# backend runs on port 8000
 
-# frontend host is 192.168.0.102
-# frontend runs on port 8501
+# -----------------------------------
+# Start Redis via Docker
+# -----------------------------------
+def start_redis():
+    try:
+        logger.info("Checking Redis Docker container...")
+
+        # Check if container exists
+        result = subprocess.run(
+            [
+                "docker",
+                "ps",
+                "-a",
+                "--filter",
+                "name=redis-cache",
+                "--format",
+                "{{.Names}}",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        if "redis-cache" in result.stdout:
+            logger.info("Redis container exists. Starting...")
+            subprocess.run(["docker", "start", "redis-cache"], check=True)
+        else:
+            logger.info("Creating new Redis container...")
+            subprocess.run(
+                [
+                    "docker",
+                    "run",
+                    "-d",
+                    "-p",
+                    "6379:6379",
+                    "--name",
+                    "redis-cache",
+                    "redis",
+                ],
+                check=True,
+            )
+
+        logger.info("Redis is running.")
+
+    except Exception as e:
+        logger.error("Failed to start Redis via Docker.")
+        logger.error(str(e))
 
 
+# -----------------------------------
+# Backend
+# -----------------------------------
 def run_backend():
     try:
-        logger.info("starting backend service..")
+        logger.info("Starting backend service...")
         subprocess.run(
             [
                 "uvicorn",
@@ -31,28 +74,44 @@ def run_backend():
             ],
             check=True,
         )
-    except CustomException as e:
+    except Exception as e:
         logger.error("Problem with backend service")
-        raise CustomException("Failed to start backend", e)
+        logger.error(str(e))
 
 
+# -----------------------------------
+# Frontend
+# -----------------------------------
 def run_frontend():
     try:
-        logger.info("Starting Frontend service")
+        logger.info("Starting frontend service...")
         subprocess.run(
-            ["streamlit", "run", "multi_agent_app/frontend/main.py"], check=True
+            ["streamlit", "run", "multi_agent_app/frontend/main.py"],
+            check=True,
         )
-    except CustomException as e:
+    except Exception as e:
         logger.error("Problem with frontend service")
-        raise CustomException("Failed to start frontend", e)
+        logger.error(str(e))
 
 
+# -----------------------------------
+# MAIN
+# -----------------------------------
 if __name__ == "__main__":
     try:
-        # starting the backend before the frontend
-        threading.Thread(target=run_backend).start()
+        # 1️⃣ Start Redis
+        start_redis()
         time.sleep(2)
+
+        # 2️⃣ Start Backend in Thread
+        backend_thread = threading.Thread(target=run_backend)
+        backend_thread.daemon = True
+        backend_thread.start()
+
+        time.sleep(3)
+
+        # 3️⃣ Start Frontend (main thread)
         run_frontend()
 
-    except CustomException as e:
-        logger.exception(f"CustomException occured : {str(e)}")
+    except Exception as e:
+        logger.exception(f"Launcher error: {str(e)}")
