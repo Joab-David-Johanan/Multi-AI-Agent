@@ -52,6 +52,12 @@ AI_agent_app
 │   ├── backend
 │   │   ├── __init__.py
 │   │   └── api.py
+│   ├── cache
+│   │   ├── __init__.py
+│   │   ├── cache_manager.py
+│   │   ├── exact_cache.py
+│   │   ├── semantic_cache.py
+│   │   └── tool_cache.py
 │   ├── common
 │   │   ├── __init__.py
 │   │   ├── custom_exception.py
