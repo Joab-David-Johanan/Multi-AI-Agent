@@ -15,7 +15,8 @@ def handle_chat(
     selected_model,
     temperature,
     allow_search,
-    enable_cache,
+    enable_session_cache,
+    enable_backend_cache,
     enable_streaming,
 ):
     """
@@ -38,13 +39,14 @@ def handle_chat(
     )
 
     cache_hit = False
+    cache_type = "miss"
     ai_reply = ""
     duration = 0.0
 
     # ----------------------------
     # Cache logic
     # ----------------------------
-    if enable_cache and user_input in st.session_state.cache_store:
+    if enable_session_cache and user_input in st.session_state.cache_store:
         cache_hit = True
         start_time = time.time()
         ai_reply = st.session_state.cache_store[user_input]
@@ -59,6 +61,7 @@ def handle_chat(
             "temperature": temperature,
             "allow_search": allow_search,
             "streaming": enable_streaming,
+            "enable_cache": enable_backend_cache,  # backend toggle
         }
 
         try:
@@ -95,7 +98,8 @@ def handle_chat(
 
                 if response.status_code == 200:
                     ai_reply = response.json().get("response", "")
-                    if enable_cache:
+                    cache_type = response.json().get("cache", "miss")
+                    if enable_session_cache and cache_type == "miss":
                         st.session_state.cache_store[user_input] = ai_reply
                 else:
                     st.error(response.text)
@@ -111,15 +115,31 @@ def handle_chat(
     # Mode label
     # ----------------------------
     if cache_hit:
-        mode = "Cache hit"
-    elif enable_streaming and enable_cache:
-        mode = "Live call (streaming + caching enabled)"
-    elif enable_streaming:
-        mode = "Live call (streaming enabled)"
-    elif enable_cache:
-        mode = "Live call (caching enabled)"
+        mode = ":material/bolt: Session cache hit"
+
+    elif cache_type == "exact":
+        mode = ":material/database: Global cache hit (exact)"
+
+    elif cache_type == "semantic":
+        mode = ":material/hub: Global cache hit (semantic)"
+
+    # ----- LIVE CALLS -----
     else:
-        mode = "Live call"
+        if enable_streaming:
+            mode = ":material/sync: Live call (streaming, no cache)"
+
+        else:
+            if enable_session_cache and enable_backend_cache:
+                mode = ":material/cloud: Live call (session + global cache enabled)"
+
+            elif enable_session_cache and not enable_backend_cache:
+                mode = ":material/cloud: Live call (session cache only)"
+
+            elif not enable_session_cache and enable_backend_cache:
+                mode = ":material/cloud: Live call (global cache only)"
+
+            else:
+                mode = ":material/block: Live call (no cache)"
 
     # ----------------------------
     # Append assistant

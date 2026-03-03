@@ -10,16 +10,10 @@ def make_key(query, config):
 
 
 def exact_lookup(query, config):
-    try:
-        key = make_key(query, config)
-        return r.get(key)
-    except Exception:
-        return None
+    key = make_key(query, config)
+    return r.get(key)
 
 
-def exact_store(query, response, config, ttl=3600):
-    try:
-        key = make_key(query, config)
-        r.set(key, response, ex=ttl)
-    except Exception:
-        pass
+def exact_store(query, response, config):
+    key = make_key(query, config)
+    r.set(key, response, ex=3600)  # 1h TTL

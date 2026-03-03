@@ -34,7 +34,8 @@ llm_type = sidebar_config["llm_type"]
 selected_model = sidebar_config["selected_model"]
 temperature = sidebar_config["temperature"]
 allow_search = sidebar_config["allow_search"]
-enable_cache = sidebar_config["enable_cache"]
+enable_session_cache = sidebar_config["enable_session_cache"]
+enable_backend_cache = sidebar_config["enable_backend_cache"]
 enable_chat_history = sidebar_config["enable_chat_history"]
 enable_suggestions = sidebar_config["enable_suggestions"]
 enable_streaming = sidebar_config["enable_streaming"]
@@ -47,7 +48,8 @@ handle_chat(
     selected_model=selected_model,
     temperature=temperature,
     allow_search=allow_search,
-    enable_cache=enable_cache,
+    enable_session_cache=enable_session_cache,
+    enable_backend_cache=enable_backend_cache,
     enable_streaming=enable_streaming,
 )
 

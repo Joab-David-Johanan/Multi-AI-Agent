@@ -27,7 +27,8 @@ def render_sidebar():
         allow_search = st.checkbox("Enable web search")
 
         st.subheader("Choose optimizations:")
-        enable_cache = st.checkbox("Enable caching")
+        enable_session_cache = st.checkbox("⚡ Enable session cache", value=True)
+        enable_backend_cache = st.checkbox("🧠 Enable global cache", value=True)
         enable_chat_history = st.checkbox("Enable chat history")
         enable_suggestions = st.checkbox("Enable chat suggestions")
         enable_model_comparison = st.checkbox("Enable model comparison")
@@ -40,7 +41,8 @@ def render_sidebar():
         "selected_model": selected_model,
         "temperature": temperature,
         "allow_search": allow_search,
-        "enable_cache": enable_cache,
+        "enable_session_cache": enable_session_cache,
+        "enable_backend_cache": enable_backend_cache,
         "enable_chat_history": enable_chat_history,
         "enable_suggestions": enable_suggestions,
         "enable_streaming": enable_streaming,

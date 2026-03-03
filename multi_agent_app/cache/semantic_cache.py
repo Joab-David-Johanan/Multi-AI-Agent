@@ -15,7 +15,10 @@ SIM_THRESHOLD = 0.88
 # {
 #   "query": {
 #       "embedding": np.array,
-#       "response": str
+#       "response": str,
+#       "assistant_type": str,
+#       "llm_type": str,
+#       "tool_enabled": bool
 #   }
 # }
 semantic_store: Dict[str, Dict[str, Any]] = {}
@@ -37,10 +40,10 @@ def cosine_similarity(a, b):
 # ----------------------------
 # Lookup
 # ----------------------------
-def semantic_lookup(query: str) -> Optional[str]:
+def semantic_lookup(query: str, config: dict, tool_enabled: bool) -> Optional[str]:
     """
-    Check semantic cache for similar query
-    Returns cached response if similarity high
+    Check semantic cache for similar query.
+    Respects assistant type, llm type, and tool usage.
     """
 
     if not semantic_store:
@@ -52,6 +55,17 @@ def semantic_lookup(query: str) -> Optional[str]:
     best_response = None
 
     for stored_query, data in semantic_store.items():
+
+        # 🔒 Context isolation
+        if data["assistant_type"] != config["assistant_type"]:
+            continue
+
+        if data["llm_type"] != config["llm_type"]:
+            continue
+
+        if data["tool_enabled"] != tool_enabled:
+            continue
+
         stored_emb = data["embedding"]
         score = cosine_similarity(query_emb, stored_emb)
 
@@ -68,13 +82,18 @@ def semantic_lookup(query: str) -> Optional[str]:
 # ----------------------------
 # Store
 # ----------------------------
-def semantic_store_response(query: str, response: str):
-    """Store query + response in semantic cache"""
+def semantic_store_response(
+    query: str, response: str, config: dict, tool_enabled: bool
+):
+    """Store query + response in semantic cache with context metadata"""
     emb = get_embedding(query)
 
     semantic_store[query] = {
         "embedding": emb,
         "response": response,
+        "assistant_type": config["assistant_type"],
+        "llm_type": config["llm_type"],
+        "tool_enabled": tool_enabled,
     }
 
 
