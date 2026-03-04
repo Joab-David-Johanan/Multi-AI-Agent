@@ -22,7 +22,7 @@ def render_chat_history():
 
             if item["role"] == "assistant" and item.get("time") is not None:
                 st.caption(
-                    f"Mode: {item.get('mode')} | Model: {item.get('model')} | "
-                    f"Assistant: {item.get('assistant')} | Tool: {item.get('tool')} | "
+                    f"Mode: {item.get('mode')} | Assistant: {item.get('assistant')} | "
+                    f"Memory: {item.get('memory')} | Tool: {item.get('tool')} | "
                     f"Time: {item.get('time')} seconds"
                 )

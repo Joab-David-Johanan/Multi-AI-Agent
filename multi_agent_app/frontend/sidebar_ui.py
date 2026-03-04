@@ -30,12 +30,12 @@ def render_sidebar():
         show_icons = st.toggle("Show mode icons", value=True)
 
         st.subheader("Choose optimizations:")
-        enable_session_cache = st.checkbox("⚡ Enable session cache", value=True)
-        enable_backend_cache = st.checkbox("🧠 Enable global cache", value=True)
-        enable_chat_history = st.checkbox("Enable chat history")
-        enable_suggestions = st.checkbox("Enable chat suggestions")
-        enable_model_comparison = st.checkbox("Enable model comparison")
-        enable_streaming = st.checkbox("Enable streaming output")
+        enable_session_cache = st.checkbox("⚡ Session cache")
+        enable_backend_cache = st.checkbox("🧠 Global cache")
+        enable_chat_history = st.checkbox("Conversational Memory")
+        enable_suggestions = st.checkbox("Chat suggestions")
+        enable_model_comparison = st.checkbox("Model comparison")
+        enable_streaming = st.checkbox("Streaming output")
 
     # RETURN all variables
     return {

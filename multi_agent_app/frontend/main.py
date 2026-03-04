@@ -53,6 +53,7 @@ handle_chat(
     enable_session_cache=enable_session_cache,
     enable_backend_cache=enable_backend_cache,
     enable_streaming=enable_streaming,
+    enable_coversational_memory=enable_chat_history,
 )
 
 # Render conversation history

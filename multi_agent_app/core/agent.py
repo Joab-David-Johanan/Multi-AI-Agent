@@ -4,11 +4,16 @@ from langgraph.prebuilt import create_react_agent
 from langchain_tavily import TavilySearch
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from fastapi.responses import StreamingResponse
+from langgraph.checkpoint.memory import MemorySaver
 import asyncio
 
 
 # getting the assistant prompt dictionary
 from multi_agent_app.config.settings import settings
+
+
+# LangGraph memory checkpoint (persistent during runtime)
+memory = MemorySaver()
 
 
 # Return the correct LLM instance based on provider selected in the UI
@@ -36,6 +41,8 @@ async def generate_response(
     query: str,
     allow_search: bool,
     enable_streaming: bool,
+    thread_id: str,  # for conversational memory
+    enable_memory: bool,
 ):
     assistant_type = assistant_type
     # Select assistant-specific instructions
@@ -95,8 +102,19 @@ async def generate_response(
         BASE_SYSTEM_PROMPT + "\n\nAdditional instructions:\n" + assistant_prompt
     )
 
-    # Create LangGraph agent
-    agent = create_react_agent(model=llm, tools=tools)
+    # Create LangGraph agent with memory checkpoint
+    if enable_memory:
+        agent = create_react_agent(
+            model=llm,
+            tools=tools,
+            checkpointer=memory,
+        )
+    else:
+        # Create LangGraph agent without memory checkpoint
+        agent = create_react_agent(
+            model=llm,
+            tools=tools,
+        )
 
     state = {
         "messages": [
@@ -105,10 +123,30 @@ async def generate_response(
         ]
     }
 
+    # Create LangGraph agent with memory checkpoint
+    if enable_memory:
+        agent = create_react_agent(
+            model=llm,
+            tools=tools,
+            checkpointer=memory,
+        )
+    else:
+        # Create LangGraph agent without memory checkpoint
+        agent = create_react_agent(
+            model=llm,
+            tools=tools,
+        )
+
+    # Prepare config only if memory is enabled
+    config = {"configurable": {"thread_id": thread_id}} if enable_memory else None
+
     if streaming:
 
         # Run agent normally first
-        response = await agent.ainvoke(state)
+        if enable_memory:
+            response = await agent.ainvoke(state, config=config)
+        else:
+            response = await agent.ainvoke(state)
 
         final_text = ""
 
@@ -128,7 +166,10 @@ async def generate_response(
     else:
 
         # Invoke agent asynchronously and no streaming response
-        response = await agent.ainvoke(state)
+        if enable_memory:
+            response = await agent.ainvoke(state, config=config)
+        else:
+            response = await agent.ainvoke(state)
 
         # Check messages list
         if "messages" in response:

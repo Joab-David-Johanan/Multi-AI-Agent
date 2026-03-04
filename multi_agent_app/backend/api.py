@@ -22,6 +22,8 @@ class RequestState(BaseModel):
     temperature: float
     allow_search: bool
     streaming: bool
+    thread_id: str  # for conversational memory - session tracking
+    enable_memory: bool = False  # for conversational memory - checkbox
     enable_cache: bool = True  # will not break frontend if missing
 
 
@@ -90,6 +92,8 @@ async def chat_endpoint(request: RequestState):
             query,
             request.allow_search,
             False,  # never streams
+            request.thread_id,
+            request.enable_memory,
         )
 
         # ----------------------------
@@ -149,6 +153,8 @@ async def chat_stream_endpoint(request: RequestState):
             query,
             request.allow_search,
             True,  # force streaming
+            request.thread_id,
+            request.enable_memory,
         )
 
     except Exception as e:

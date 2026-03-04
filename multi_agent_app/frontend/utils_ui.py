@@ -42,7 +42,7 @@ def generate_pdf(chat_history):
             elements.append(
                 Paragraph(
                     f"<font size=9 color=grey>Mode: {mode} | Session_cache: {item.get('session_cache')} | Global_cache: {item.get('global_cache')} | Assistant: {item.get('assistant')} | "
-                    f"Model: {item.get('model')} | Tool: {item.get('tool')} | Time: {time_taken} seconds</font>",
+                    f"Model: {item.get('model')} | Memory: {item.get('memory')} | Tool: {item.get('tool')} | Time: {time_taken} seconds</font>",
                     normal_style,
                 )
             )

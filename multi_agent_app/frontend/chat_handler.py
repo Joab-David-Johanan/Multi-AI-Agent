@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import time
+import uuid
 
 from multi_agent_app.common.logger import get_logger
 
@@ -19,10 +20,16 @@ def handle_chat(
     enable_session_cache,
     enable_backend_cache,
     enable_streaming,
+    enable_coversational_memory,
 ):
     """
     Handles chat input, backend call, caching, and response rendering.
     """
+
+    # Create a unique conversation thread id for LangGraph memory
+    # Ensure thread_id exists for LangGraph conversational memory
+    if "thread_id" not in st.session_state:
+        st.session_state.thread_id = str(uuid.uuid4())
 
     user_input = st.chat_input("Type your message")
 
@@ -69,6 +76,8 @@ def handle_chat(
             "temperature": temperature,
             "allow_search": allow_search,
             "streaming": enable_streaming,
+            "thread_id": st.session_state.thread_id,
+            "enable_memory": enable_coversational_memory,
             "enable_cache": enable_backend_cache,  # backend toggle
         }
 
@@ -168,6 +177,7 @@ def handle_chat(
             "tool": allow_search,
             "session_cache": enable_session_cache,
             "global_cache": enable_backend_cache,
+            "memory": enable_coversational_memory,
         }
     )
 
