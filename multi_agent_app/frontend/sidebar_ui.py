@@ -26,6 +26,9 @@ def render_sidebar():
 
         allow_search = st.checkbox("Enable web search")
 
+        # material icon toggle
+        show_icons = st.toggle("Show mode icons", value=True)
+
         st.subheader("Choose optimizations:")
         enable_session_cache = st.checkbox("⚡ Enable session cache", value=True)
         enable_backend_cache = st.checkbox("🧠 Enable global cache", value=True)
@@ -40,6 +43,7 @@ def render_sidebar():
         "llm_type": llm_type,
         "selected_model": selected_model,
         "temperature": temperature,
+        "show_icons": show_icons,
         "allow_search": allow_search,
         "enable_session_cache": enable_session_cache,
         "enable_backend_cache": enable_backend_cache,

@@ -14,6 +14,7 @@ def handle_chat(
     llm_type,
     selected_model,
     temperature,
+    show_icons,
     allow_search,
     enable_session_cache,
     enable_backend_cache,
@@ -44,7 +45,7 @@ def handle_chat(
     duration = 0.0
 
     # ----------------------------
-    # Cache logic
+    # Session Cache logic
     # ----------------------------
     if enable_session_cache and user_input in st.session_state.cache_store:
         cache_hit = True
@@ -114,32 +115,37 @@ def handle_chat(
     # ----------------------------
     # Mode label
     # ----------------------------
+
+    def icon(name):
+        if show_icons:
+            return f":material/{name}: "
+        return ""
+
     if cache_hit:
-        mode = ":material/bolt: Session cache hit"
+        mode = f"{icon('bolt')}Session cache hit"
 
     elif cache_type == "exact":
-        mode = ":material/database: Global cache hit (exact)"
+        mode = f"{icon('database')}Global cache hit (exact)"
 
     elif cache_type == "semantic":
-        mode = ":material/hub: Global cache hit (semantic)"
+        mode = f"{icon('hub')}Global cache hit (semantic)"
 
-    # ----- LIVE CALLS -----
     else:
         if enable_streaming:
-            mode = ":material/sync: Live call (streaming, no cache)"
+            mode = f"{icon('sync')}Live call (streaming, no cache)"
 
         else:
             if enable_session_cache and enable_backend_cache:
-                mode = ":material/cloud: Live call (session + global cache enabled)"
+                mode = f"{icon('cloud')}Live call (session + global cache enabled)"
 
             elif enable_session_cache and not enable_backend_cache:
-                mode = ":material/cloud: Live call (session cache only)"
+                mode = f"{icon('cloud')}Live call (session cache only)"
 
             elif not enable_session_cache and enable_backend_cache:
-                mode = ":material/cloud: Live call (global cache only)"
+                mode = f"{icon('cloud')}Live call (global cache only)"
 
             else:
-                mode = ":material/block: Live call (no cache)"
+                mode = f"{icon('block')}Live call (no cache)"
 
     # ----------------------------
     # Append assistant
@@ -153,6 +159,8 @@ def handle_chat(
             "assistant": assistant_type,
             "model": selected_model,
             "tool": allow_search,
+            "session_cache": enable_session_cache,
+            "global_cache": enable_backend_cache,
         }
     )
 

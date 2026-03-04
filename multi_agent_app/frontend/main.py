@@ -33,6 +33,7 @@ assistant_type = sidebar_config["assistant_type"]
 llm_type = sidebar_config["llm_type"]
 selected_model = sidebar_config["selected_model"]
 temperature = sidebar_config["temperature"]
+show_icons = sidebar_config["show_icons"]
 allow_search = sidebar_config["allow_search"]
 enable_session_cache = sidebar_config["enable_session_cache"]
 enable_backend_cache = sidebar_config["enable_backend_cache"]
@@ -47,6 +48,7 @@ handle_chat(
     llm_type=llm_type,
     selected_model=selected_model,
     temperature=temperature,
+    show_icons=show_icons,
     allow_search=allow_search,
     enable_session_cache=enable_session_cache,
     enable_backend_cache=enable_backend_cache,
