@@ -1,6 +1,7 @@
 import streamlit as st
 from pathlib import Path
 from io import BytesIO
+import re
 
 # PDF generation (must use reportlab.platypus)
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
@@ -29,7 +30,7 @@ def generate_pdf(chat_history):
     for item in chat_history:
         role = item["role"].capitalize()
         message = item["message"]
-        mode = item.get("mode")
+        mode = remove_material_icons(item.get("mode"))
         time_taken = item.get("time")
 
         elements.append(Paragraph(f"<b>{role}</b>", normal_style))
@@ -40,7 +41,7 @@ def generate_pdf(chat_history):
         if role == "Assistant":
             elements.append(
                 Paragraph(
-                    f"<font size=9 color=grey>Mode: {mode} | Assistant: {item.get('assistant')} | "
+                    f"<font size=9 color=grey>Mode: {mode} | Session_cache: {item.get('session_cache')} | Global_cache: {item.get('global_cache')} | Assistant: {item.get('assistant')} | "
                     f"Model: {item.get('model')} | Tool: {item.get('tool')} | Time: {time_taken} seconds</font>",
                     normal_style,
                 )
@@ -52,3 +53,10 @@ def generate_pdf(chat_history):
     doc.build(elements)
     buffer.seek(0)
     return buffer
+
+
+# Remove material icon text from PDF
+def remove_material_icons(text):
+    if not text:
+        return text
+    return re.sub(r":material/[^:]+:\s*", "", text)
