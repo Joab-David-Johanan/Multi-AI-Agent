@@ -99,18 +99,18 @@ def run_frontend():
 # -----------------------------------
 if __name__ == "__main__":
     try:
-        # 1️⃣ Start Redis
+        # Start Redis
         start_redis()
         time.sleep(2)
 
-        # 2️⃣ Start Backend in Thread
+        # Start Backend in Thread
         backend_thread = threading.Thread(target=run_backend)
         backend_thread.daemon = True
         backend_thread.start()
 
         time.sleep(3)
 
-        # 3️⃣ Start Frontend (main thread)
+        # Start Frontend (main thread)
         run_frontend()
 
     except Exception as e:
