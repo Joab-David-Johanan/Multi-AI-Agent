@@ -13,13 +13,15 @@ def render_conversation_expander():
     if not any(item["role"] == "assistant" for item in st.session_state.chat_history):
         return
 
-    with st.expander("Conversation history", expanded=False):
+    with st.expander("Chat history", expanded=False):
 
         for item in st.session_state.chat_history:
             st.markdown(f"**{item['role'].capitalize()}**")
             st.markdown(item["message"])
 
             if item["role"] == "assistant":
+                st.markdown(f"Session cache: {item.get('session_cache')}")
+                st.markdown(f"Global cache: {item.get('global_cache')}")
                 st.markdown(f"Mode: {item.get('mode')}")
                 st.markdown(f"Assistant: {item.get('assistant')}")
                 st.markdown(f"Model: {item.get('model')}")
@@ -46,8 +48,8 @@ def render_conversation_expander():
             pdf_file = generate_pdf(st.session_state.chat_history)
 
             st.download_button(
-                label="Download conversation (PDF)",
+                label="Download chat history (PDF)",
                 data=pdf_file,
-                file_name="conversation_history.pdf",
+                file_name="chat_history.pdf",
                 mime="application/pdf",
             )
