@@ -41,16 +41,23 @@ def handle_chat(
 
     cache_hit = False
     cache_type = "miss"
+    cache_key = (
+        assistant_type,
+        llm_type,
+        selected_model,
+        temperature,
+        user_input,
+    )
     ai_reply = ""
     duration = 0.0
 
     # ----------------------------
     # Session Cache logic
     # ----------------------------
-    if enable_session_cache and user_input in st.session_state.cache_store:
+    if enable_session_cache and cache_key in st.session_state.cache_store:
         cache_hit = True
         start_time = time.time()
-        ai_reply = st.session_state.cache_store[user_input]
+        ai_reply = st.session_state.cache_store[cache_key]
         duration = round(time.time() - start_time, 4)
 
     else:
@@ -101,7 +108,7 @@ def handle_chat(
                     ai_reply = response.json().get("response", "")
                     cache_type = response.json().get("cache", "miss")
                     if enable_session_cache and cache_type == "miss":
-                        st.session_state.cache_store[user_input] = ai_reply
+                        st.session_state.cache_store[cache_key] = ai_reply
                 else:
                     st.error(response.text)
                     ai_reply = "Error"
