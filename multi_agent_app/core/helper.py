@@ -2,16 +2,34 @@ from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
+from langchain_tavily import TavilySearch
+
 
 # LangGraph memory checkpoint (persistent during runtime)
 memory = MemorySaver()
 
 # -------------------------------------------------
-# GLOBAL CACHES (avoid recreating agents + llms)
+# GLOBAL CACHES (avoid recreating agents + llms + tools)
 # -------------------------------------------------
 
 LLM_CACHE = {}
 AGENT_CACHE = {}
+TOOL_CACHE = {}
+
+TAVILY_TOOL = TavilySearch(max_results=2)
+
+
+# This ensures repeated searches return in milliseconds instead of seconds
+def get_cached_search(query):
+
+    if query in TOOL_CACHE:
+        return TOOL_CACHE[query]
+
+    search = TavilySearch(max_results=3)
+    result = search.invoke(query)
+
+    TOOL_CACHE[query] = result
+    return result
 
 
 # This ensures LLM instance is reused

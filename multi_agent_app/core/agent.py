@@ -5,7 +5,8 @@ import asyncio
 
 
 from multi_agent_app.config.settings import settings
-from multi_agent_app.core.helper import get_llm, get_agent
+from multi_agent_app.core.helper import get_llm, get_agent, get_cached_search
+from multi_agent_app.core.helper import TAVILY_TOOL
 
 
 # Main function responsible for generating AI responses
@@ -55,7 +56,7 @@ async def generate_response(
     streaming = enable_streaming
 
     # Add Tavily search tool only if needed
-    tools = [TavilySearch(max_results=5)] if use_search else []
+    tools = [TAVILY_TOOL] if use_search else []
 
     # ------------------------------------------------------------------
     # Improved base guardrails
