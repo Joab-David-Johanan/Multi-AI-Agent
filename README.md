@@ -9,15 +9,22 @@
 ![AWS](https://img.shields.io/badge/AWS-Cloud-orange)
 ![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
 
+---
+
+# Multi-Agent LLM Application
+
 ## Table of Contents
 
 - [Overview](#overview)
 - [Vision](#vision)
+- [Project Structure](#project-structure)
 - [Architecture](#architecture)
+- [System Architecture Diagram](#system-architecture-diagram)
+- [Agent Workflow](#agent-workflow)
+- [CI/CD Pipeline](#cicd-pipeline)
 - [Pain Points and Solutions](#pain-points-and-solutions)
 - [Tech Stack](#tech-stack)
 - [System Design Considerations](#system-design-considerations)
-- [Project Structure](#project-structure)
 - [Installation](#installation)
 - [Environment Variables](#environment-variables)
 - [Running the Application](#running-the-application)
@@ -25,7 +32,9 @@
 - [Future Improvements](#future-improvements)
 - [License](#license)
 
-## Overview
+---
+
+# Overview
 
 This project implements a **configurable multi-agent LLM system** that enables dynamic agent behavior selection and tool-based reasoning using **LangGraph orchestration**.
 
@@ -47,11 +56,17 @@ The application integrates:
 
 ---
 
-## Vision
+# Vision
 
 The goal of this project is to build a **scalable, production-oriented multi-agent LLM system** that addresses common challenges faced in real-world AI applications.
 
-While many LLM applications focus only on generating responses, production systems must also handle challenges such as **latency, cost optimization, conversational continuity, reliability, and task specialization**.
+While many LLM applications focus only on generating responses, production systems must also handle challenges such as:
+
+- Latency
+- Cost optimization
+- Conversational continuity
+- System reliability
+- Task specialization
 
 This project explores how **agent orchestration, caching strategies, tool integration, and multi-model support** can be combined to build a robust conversational AI platform.
 
@@ -68,7 +83,27 @@ The vision behind this system is to:
 
 ---
 
-## Architecture
+# Project Structure
+
+```
+AI_agent_app
+├── multi_agent_app
+│   ├── backend
+│   ├── frontend
+│   ├── cache
+│   ├── core
+│   ├── config
+│   └── common
+├── Dockerfile
+├── requirements.txt
+└── pyproject.toml
+```
+
+[⬆ Back to Top](#table-of-contents)
+
+---
+
+# Architecture
 
 High-level architecture of the system:
 
@@ -87,33 +122,132 @@ Caching Layer
 
 Core architectural components:
 
-- **Streamlit UI** for interactive chat interface
-- **FastAPI backend** to manage API communication
+- **Streamlit UI**
+- **FastAPI backend**
 - **LangGraph agent orchestration**
-- **External tool integration**
-- **Caching layer for optimization**
+- **External tool integrations**
+- **Caching layer**
 - **Multi-model LLM support**
 
 [⬆ Back to Top](#table-of-contents)
 
 ---
 
-## Pain Points and Solutions
+# System Architecture Diagram
+
+```mermaid
+flowchart TD
+
+User[User] --> UI[Streamlit Frontend]
+
+UI --> API[FastAPI Backend]
+
+API --> Router[Agent Router]
+
+Router --> General[General Assistant]
+Router --> Finance[Financial Assistant]
+Router --> Medical[Medical Assistant]
+Router --> Legal[Legal Assistant]
+
+General --> LLM
+Finance --> LLM
+Medical --> LLM
+Legal --> LLM
+
+LLM --> Tools[Tavily Search Tool]
+
+LLM --> CacheLayer[Cache Layer]
+
+CacheLayer --> SessionCache[Session Cache]
+CacheLayer --> GlobalCache[Global Cache]
+
+Tools --> Response
+LLM --> Response
+
+Response --> UI
+```
+
+[⬆ Back to Top](#table-of-contents)
+
+---
+
+# Agent Workflow
+
+```mermaid
+flowchart LR
+
+Start([User Query])
+
+Start --> Router[Agent Router]
+
+Router --> GeneralAgent[General Assistant]
+Router --> FinanceAgent[Financial Assistant]
+Router --> MedicalAgent[Medical Assistant]
+Router --> LegalAgent[Legal Assistant]
+
+GeneralAgent --> Memory[Conversation Memory]
+FinanceAgent --> Memory
+MedicalAgent --> Memory
+LegalAgent --> Memory
+
+Memory --> ToolCheck{Need Tool?}
+
+ToolCheck -->|Yes| Tavily[Tavily Search]
+ToolCheck -->|No| LLM[LLM Response]
+
+Tavily --> LLM
+
+LLM --> Suggestions[Generate Follow-up Suggestions]
+
+Suggestions --> Streaming[Streaming Response]
+
+Streaming --> End([Return Response to User])
+```
+
+[⬆ Back to Top](#table-of-contents)
+
+---
+
+# CI/CD Pipeline
+
+```mermaid
+flowchart LR
+
+Dev[Developer] --> GitHub[GitHub Repository]
+
+GitHub --> Jenkins[Jenkins Pipeline]
+
+Jenkins --> Test[Run Tests]
+
+Test --> Sonar[SonarQube Code Analysis]
+
+Sonar --> Build[Docker Build]
+
+Build --> Push[ECR Push]
+
+Push --> Deploy[AWS Fargate Deployment]
+
+Deploy --> App[Running Application]
+```
+
+[⬆ Back to Top](#table-of-contents)
+
+---
+
+# Pain Points and Solutions
 
 ### 1. Repeated Queries Increase Cost and Latency
 
 **Pain Point**
 
-Repeated user queries may trigger identical LLM or tool calls, increasing cost and latency.
+Repeated user queries trigger identical LLM or tool calls.
 
 **Solution**
 
 Implemented **multi-layer caching**:
 
-- **Session Cache** for active user sessions
-- **Global Cache** shared across sessions
-
-This reduces redundant LLM calls and improves response speed.
+- Session Cache
+- Global Cache
 
 ---
 
@@ -125,11 +259,7 @@ Agents without context awareness produce fragmented conversations.
 
 **Solution**
 
-Integrated **LangGraph conversational memory**, allowing the system to:
-
-- Maintain conversation context
-- Understand follow-up questions
-- Generate coherent multi-turn responses.
+Integrated **LangGraph conversational memory**.
 
 ---
 
@@ -137,13 +267,13 @@ Integrated **LangGraph conversational memory**, allowing the system to:
 
 **Pain Point**
 
-Traditional assistants answer questions but do not encourage continued interaction.
+Traditional assistants answer queries but do not continue conversations.
 
 **Solution**
 
-Modified prompting to generate **three follow-up topic suggestions** with each response.
+Agents generate **three follow-up topic suggestions**.
 
-These suggestions appear as **interactive buttons in the Streamlit UI**, enabling users to continue conversations seamlessly.
+These appear as **interactive buttons in the Streamlit UI**.
 
 ---
 
@@ -155,14 +285,10 @@ Long response times reduce user satisfaction.
 
 **Solution**
 
-Optimizations implemented:
-
-- Cached **LLM objects**
-- Cached **agent initialization**
-- Cached **tool search results**
-- Added **streaming responses**
-
-Streaming allows users to see responses as they are generated.
+- Cached LLM instances
+- Cached agent initialization
+- Cached tool search results
+- Streaming responses
 
 ---
 
@@ -170,16 +296,11 @@ Streaming allows users to see responses as they are generated.
 
 **Pain Point**
 
-Relying on a single model provider creates a potential single point of failure.
+Reliance on one provider creates a single point of failure.
 
 **Solution**
 
-Added **multi-provider model support**:
-
-- OpenAI models
-- Groq models
-
-Users can switch models to maintain system reliability.
+Support for **OpenAI and Groq models**.
 
 ---
 
@@ -187,24 +308,22 @@ Users can switch models to maintain system reliability.
 
 **Pain Point**
 
-One general assistant may struggle with specialized domains.
+A single assistant cannot reliably answer specialized questions.
 
 **Solution**
 
-Implemented **domain-specific assistants**:
+Domain-specific assistants:
 
-- General Assistant
-- Financial Assistant
-- Medical Assistant
-- Legal Assistant
-
-Each assistant is restricted to its respective domain.
+- General
+- Financial
+- Medical
+- Legal
 
 [⬆ Back to Top](#table-of-contents)
 
 ---
 
-## Tech Stack
+# Tech Stack
 
 ### Core Frameworks
 
@@ -222,106 +341,33 @@ Each assistant is restricted to its respective domain.
 
 - Tavily Search API
 
-### Infrastructure & MLOps
+### Infrastructure
 
 - Docker
 - Jenkins
 - SonarQube
-- AWS
-  - ECR
-  - Fargate
+- AWS (ECR + Fargate)
 
 [⬆ Back to Top](#table-of-contents)
 
 ---
 
-## System Design Considerations
+# System Design Considerations
 
-Key design principles used in this system:
+Key design principles:
 
-- **Modular architecture** separating frontend, backend, and agent logic
-- **Agent orchestration** using LangGraph
-- **Multi-layer caching** for performance optimization
-- **Multi-model architecture** to avoid single-provider dependency
-- **Streaming responses** to improve perceived responsiveness
-- **CI/CD integration** for automated deployment
-
-[⬆ Back to Top](#table-of-contents)
-
----
-
-## Project Structure
-
-```
-AI_agent_app
-├── .streamlit
-│   └── config.toml
-├── assets
-│   └── styles.css
-├── custom_jenkins
-│   └── Dockerfile
-├── logs
-│   ├── log_20-02-2026.log
-│   ├── log_2026-02-10.log
-│   ├── log_2026-02-11.log
-│   ├── log_2026-02-12.log
-│   ├── log_2026-02-17.log
-│   ├── log_2026-03-02.log
-│   ├── log_2026-03-03.log
-│   ├── log_2026-03-04.log
-│   ├── log_2026-03-05.log
-│   ├── log_21-02-2026.log
-│   ├── log_22-02-2026.log
-│   ├── log_26-02-2026.log
-│   └── log_28-02-2026.log
-├── multi_agent_app
-│   ├── backend
-│   │   ├── __init__.py
-│   │   └── api.py
-│   ├── cache
-│   │   ├── __init__.py
-│   │   ├── cache_manager.py
-│   │   ├── cache_policy.py
-│   │   ├── exact_cache.py
-│   │   ├── query_classifier.py
-│   │   └── semantic_cache.py
-│   ├── common
-│   │   ├── __init__.py
-│   │   ├── custom_exception.py
-│   │   └── logger.py
-│   ├── config
-│   │   ├── __init__.py
-│   │   └── settings.py
-│   ├── core
-│   │   ├── __init__.py
-│   │   ├── agent.py
-│   │   └── helper.py
-│   ├── frontend
-│   │   ├── __init__.py
-│   │   ├── chat_handler.py
-│   │   ├── history_ui.py
-│   │   ├── main.py
-│   │   ├── session.py
-│   │   ├── sidebar_ui.py
-│   │   └── utils_ui.py
-│   ├── __init__.py
-│   └── launcher.py
-├── scripts
-│   └── generate_tree.sh
-├── .env
-├── .gitignore
-├── AI_agent_app.code-workspace
-├── Dockerfile
-├── README.md
-├── pyproject.toml
-└── requirements.txt
-```
+- Modular architecture
+- Multi-agent orchestration
+- Multi-layer caching
+- Multi-model support
+- Streaming responses
+- CI/CD automation
 
 [⬆ Back to Top](#table-of-contents)
 
 ---
 
-## Installation
+# Installation
 
 Clone the repository:
 
@@ -330,7 +376,7 @@ git clone https://github.com/Joab-David-Johanan/Multi-AI-Agent
 cd Multi-AI-Agent
 ```
 
-Install the package:
+Install the project:
 
 ```bash
 pip install -e .
@@ -346,9 +392,9 @@ pip install -r requirements.txt
 
 ---
 
-## Environment Variables
+# Environment Variables
 
-Create a `.env` file in the project root and add:
+Create `.env` file:
 
 ```
 OPENAI_API_KEY=your_openai_key
@@ -361,60 +407,58 @@ LANGCHAIN_API_KEY=your_langchain_key
 
 ---
 
-## Running the Application
+# Running the Application
 
-Run the full application:
+Run the full app:
 
 ```bash
 python multi_agent_app/main.py
 ```
 
-Run backend and frontend separately.
-
-Start FastAPI backend:
+Run backend separately:
 
 ```bash
 fastapi dev multi_agent_app/backend/api.py
 ```
 
-Start Streamlit frontend:
+Run frontend separately:
 
 ```bash
-streamlit run multi_agent_app/frontend/ui.py
+streamlit run multi_agent_app/frontend/main.py
 ```
 
 [⬆ Back to Top](#table-of-contents)
 
 ---
 
-## Features
+# Features
 
-- Multi-agent LLM orchestration
+- Multi-agent orchestration
 - Tool-based reasoning
 - Context-aware conversations
-- Multi-layer caching system
+- Multi-layer caching
 - Streaming responses
 - Domain-specific assistants
 - Docker containerization
-- CI/CD pipeline integration
+- CI/CD pipeline
 
 [⬆ Back to Top](#table-of-contents)
 
 ---
 
-## Future Improvements
+# Future Improvements
 
-Potential enhancements for future development:
+Potential future work:
 
-- Observability tools (LangSmith / OpenTelemetry)
-- Evaluation pipeline for agent responses
+- Observability (LangSmith / OpenTelemetry)
+- Evaluation pipelines
 - Kubernetes deployment
 
 [⬆ Back to Top](#table-of-contents)
 
 ---
 
-## License
+# License
 
 This project is released under the **MIT License**.
 
@@ -576,7 +620,7 @@ Follow the steps below to integrate GitHub with Jenkins for automated pipeline e
 
 ---
 
-### 7. Run the Pipeline
+### 6. Run the Pipeline
 
 1. Go back to the **Jenkins Dashboard**.
 2. Click on **Build Now** for your pipeline job.
@@ -584,7 +628,7 @@ Follow the steps below to integrate GitHub with Jenkins for automated pipeline e
 
 ---
 
-### 8. Check Pipeline Success
+### 7. Check Pipeline Success
 
 Once the pipeline finishes, you will see a success message, indicating that your first pipeline run was successful. Additionally, in the **Workspace** of the job, you will see that Jenkins has cloned your GitHub repository.
 
@@ -708,14 +752,14 @@ docker network connect dind-network sonarqube-dind
 
 ---
 
-### 8. Final Pipeline Run
+### 7. Final Pipeline Run
 
 1. Trigger the **Jenkins Pipeline** .
 2. The build should now be successful, and the code will be analyzed by **SonarQube**.
 
 ---
 
-### 9. View Results in SonarQube
+### 8. View Results in SonarQube
 
 Go to **SonarQube** and see the code quality report generated for your project.
 
