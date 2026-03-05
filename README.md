@@ -9,27 +9,248 @@
 ![AWS](https://img.shields.io/badge/AWS-Cloud-orange)
 ![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
 
-### Multi-Agent Application:
+## Table of Contents
 
-Designed and deployed a configurable multi-agent LLM system enabling dynamic behavior selection and tool-based reasoning using LangGraph and Tavily search.
+- [Overview](#overview)
+- [Vision](#vision)
+- [Architecture](#architecture)
+- [Pain Points and Solutions](#pain-points-and-solutions)
+- [Tech Stack](#tech-stack)
+- [System Design Considerations](#system-design-considerations)
+- [Project Structure](#project-structure)
+- [Installation](#installation)
+- [Environment Variables](#environment-variables)
+- [Running the Application](#running-the-application)
+- [Features](#features)
+- [Future Improvements](#future-improvements)
+- [License](#license)
 
-### Built using the following techstack:
+## Overview
+
+This project implements a **configurable multi-agent LLM system** that enables dynamic agent behavior selection and tool-based reasoning using **LangGraph orchestration**.
+
+The system allows multiple agents to collaborate, access external tools, and dynamically determine execution paths to answer user queries.
+
+The application integrates:
+
+- **FastAPI backend** for agent orchestration
+- **Streamlit frontend** for interactive conversations
+- **LangGraph agent workflows**
+- **LLM integrations (OpenAI and Groq)**
+- **External tool usage via Tavily search**
+- **Caching mechanisms for optimized performance**
+- **Docker-based containerization**
+- **CI/CD pipeline using Jenkins**
+- **AWS deployment infrastructure**
+
+[⬆ Back to Top](#table-of-contents)
+
+---
+
+## Vision
+
+The goal of this project is to build a **scalable, production-oriented multi-agent LLM system** that addresses common challenges faced in real-world AI applications.
+
+While many LLM applications focus only on generating responses, production systems must also handle challenges such as **latency, cost optimization, conversational continuity, reliability, and task specialization**.
+
+This project explores how **agent orchestration, caching strategies, tool integration, and multi-model support** can be combined to build a robust conversational AI platform.
+
+The vision behind this system is to:
+
+- Reduce **LLM latency and operational cost**
+- Maintain **context-aware conversations**
+- Encourage **engaging and interactive user experiences**
+- Improve **system reliability**
+- Support **specialized domain assistants**
+- Demonstrate **production-grade MLOps practices**
+
+[⬆ Back to Top](#table-of-contents)
+
+---
+
+## Architecture
+
+High-level architecture of the system:
+
+```
+User Interface (Streamlit)
+        ↓
+FastAPI Backend
+        ↓
+LangGraph Agent Workflow
+        ↓
+LLM + Tools
+(OpenAI / Groq / Tavily)
+        ↓
+Caching Layer
+```
+
+Core architectural components:
+
+- **Streamlit UI** for interactive chat interface
+- **FastAPI backend** to manage API communication
+- **LangGraph agent orchestration**
+- **External tool integration**
+- **Caching layer for optimization**
+- **Multi-model LLM support**
+
+[⬆ Back to Top](#table-of-contents)
+
+---
+
+## Pain Points and Solutions
+
+### 1. Repeated Queries Increase Cost and Latency
+
+**Pain Point**
+
+Repeated user queries may trigger identical LLM or tool calls, increasing cost and latency.
+
+**Solution**
+
+Implemented **multi-layer caching**:
+
+- **Session Cache** for active user sessions
+- **Global Cache** shared across sessions
+
+This reduces redundant LLM calls and improves response speed.
+
+---
+
+### 2. Lack of Conversational Memory
+
+**Pain Point**
+
+Agents without context awareness produce fragmented conversations.
+
+**Solution**
+
+Integrated **LangGraph conversational memory**, allowing the system to:
+
+- Maintain conversation context
+- Understand follow-up questions
+- Generate coherent multi-turn responses.
+
+---
+
+### 3. Static Question–Answer Interaction
+
+**Pain Point**
+
+Traditional assistants answer questions but do not encourage continued interaction.
+
+**Solution**
+
+Modified prompting to generate **three follow-up topic suggestions** with each response.
+
+These suggestions appear as **interactive buttons in the Streamlit UI**, enabling users to continue conversations seamlessly.
+
+---
+
+### 4. Slow Response Times
+
+**Pain Point**
+
+Long response times reduce user satisfaction.
+
+**Solution**
+
+Optimizations implemented:
+
+- Cached **LLM objects**
+- Cached **agent initialization**
+- Cached **tool search results**
+- Added **streaming responses**
+
+Streaming allows users to see responses as they are generated.
+
+---
+
+### 5. Single Model Provider Risk
+
+**Pain Point**
+
+Relying on a single model provider creates a potential single point of failure.
+
+**Solution**
+
+Added **multi-provider model support**:
+
+- OpenAI models
+- Groq models
+
+Users can switch models to maintain system reliability.
+
+---
+
+### 6. General Assistants Cannot Handle Specialized Tasks
+
+**Pain Point**
+
+One general assistant may struggle with specialized domains.
+
+**Solution**
+
+Implemented **domain-specific assistants**:
+
+- General Assistant
+- Financial Assistant
+- Medical Assistant
+- Legal Assistant
+
+Each assistant is restricted to its respective domain.
+
+[⬆ Back to Top](#table-of-contents)
+
+---
+
+## Tech Stack
+
+### Core Frameworks
 
 - LangChain
 - LangGraph
 - FastAPI
 - Streamlit
-- Docker
-- SonarQube
-- Jenkins
-- AWS
-    - ECR
-    - Fargate
-- Groq models
-- Openai models
-- Tavily search
 
-### Project Structure:
+### LLM Providers
+
+- OpenAI
+- Groq
+
+### Tools
+
+- Tavily Search API
+
+### Infrastructure & MLOps
+
+- Docker
+- Jenkins
+- SonarQube
+- AWS
+  - ECR
+  - Fargate
+
+[⬆ Back to Top](#table-of-contents)
+
+---
+
+## System Design Considerations
+
+Key design principles used in this system:
+
+- **Modular architecture** separating frontend, backend, and agent logic
+- **Agent orchestration** using LangGraph
+- **Multi-layer caching** for performance optimization
+- **Multi-model architecture** to avoid single-provider dependency
+- **Streaming responses** to improve perceived responsiveness
+- **CI/CD integration** for automated deployment
+
+[⬆ Back to Top](#table-of-contents)
+
+---
+
+## Project Structure
 
 ```
 AI_agent_app
@@ -87,61 +308,108 @@ AI_agent_app
 ├── README.md
 ├── pyproject.toml
 └── requirements.txt
-
 ```
 
+[⬆ Back to Top](#table-of-contents)
 
-## Steps to run the program:
+---
 
-### 1. Create and clone the repository
+## Installation
+
+Clone the repository:
 
 ```bash
 git clone https://github.com/Joab-David-Johanan/Multi-AI-Agent
+cd Multi-AI-Agent
 ```
 
-### 2. Install the project as a package after opening the repository
+Install the package:
 
 ```bash
 pip install -e .
 ```
 
-```bash
-pip show list
-```
-
-### 3. Check all dependencies
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Create a `.env` file in the root directory and add your LangChain and other API credentials as follows:
+[⬆ Back to Top](#table-of-contents)
 
-```bash
-OPENAI_API_KEY = "XXXXXXXXXXXXXXXXXXXXXX"
-GROQ_API_KEY = "XXXXXXXXXXXXXXXXXXXXXX"
-TAVILY_API_KEY = "XXXXXXXXXXXXXXXXXXXXXX"
-LANGCHAIN_API_KEY = "XXXXXXXXXXXXXXXXXXXXXX"
+---
+
+## Environment Variables
+
+Create a `.env` file in the project root and add:
+
+```
+OPENAI_API_KEY=your_openai_key
+GROQ_API_KEY=your_groq_key
+TAVILY_API_KEY=your_tavily_key
+LANGCHAIN_API_KEY=your_langchain_key
 ```
 
-### 5. Run the Application Locally
+[⬆ Back to Top](#table-of-contents)
+
+---
+
+## Running the Application
+
+Run the full application:
 
 ```bash
 python multi_agent_app/main.py
 ```
 
-### 6. Optional (for separate start of backend and frontend)
+Run backend and frontend separately.
 
-run the following command to start the Fastapi backend:
-
-```bash
-fastapi dev multi_agent_app\backend\api.py
-```
-run the following command to start the Streamlit frontend:
+Start FastAPI backend:
 
 ```bash
-streamlit run multi_agent_app\frontend\ui.py
+fastapi dev multi_agent_app/backend/api.py
 ```
+
+Start Streamlit frontend:
+
+```bash
+streamlit run multi_agent_app/frontend/ui.py
+```
+
+[⬆ Back to Top](#table-of-contents)
+
+---
+
+## Features
+
+- Multi-agent LLM orchestration
+- Tool-based reasoning
+- Context-aware conversations
+- Multi-layer caching system
+- Streaming responses
+- Domain-specific assistants
+- Docker containerization
+- CI/CD pipeline integration
+
+[⬆ Back to Top](#table-of-contents)
+
+---
+
+## Future Improvements
+
+Potential enhancements for future development:
+
+- Observability tools (LangSmith / OpenTelemetry)
+- Evaluation pipeline for agent responses
+- Kubernetes deployment
+
+[⬆ Back to Top](#table-of-contents)
+
+---
+
+## License
+
+This project is released under the **MIT License**.
 
 ---
 
@@ -766,13 +1034,4 @@ git tag -a v1.0.0 -m "Initial release"
 ```bash
 git push origin v1.0.0
 ```
-
-### Work in Progress (WIP)
-
-- Make caching more functional
-- Performance evaluation metrics for different assistants and models
-- Model dashboard for comparison of performance
-- LLM as a judge to evaluate assistant responses
-- Guardrails for better separation of concerns
-- Suggestions after assistant response to engage the user
 
