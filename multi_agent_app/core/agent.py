@@ -1,34 +1,11 @@
-from langchain_groq import ChatGroq
-from langchain_openai import ChatOpenAI
-from langgraph.prebuilt import create_react_agent
-from langchain_tavily import TavilySearch
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_tavily import TavilySearch
 from fastapi.responses import StreamingResponse
-from langgraph.checkpoint.memory import MemorySaver
 import asyncio
 
 
-# getting the assistant prompt dictionary
 from multi_agent_app.config.settings import settings
-
-
-# LangGraph memory checkpoint (persistent during runtime)
-memory = MemorySaver()
-
-
-# Return the correct LLM instance based on provider selected in the UI
-def get_llm(provider: str, model_name: str, streaming: bool, temperature: int):
-
-    if provider == "Groq":
-        return ChatGroq(model=model_name, streaming=streaming, temperature=temperature)
-
-    elif provider == "OpenAI":
-        return ChatOpenAI(
-            model=model_name, streaming=streaming, temperature=temperature
-        )
-
-    else:
-        raise ValueError("Unsupported LLM provider")
+from multi_agent_app.core.helper import get_llm, get_agent
 
 
 # Main function responsible for generating AI responses
@@ -44,7 +21,6 @@ async def generate_response(
     thread_id: str,  # for conversational memory
     enable_memory: bool,
 ):
-    assistant_type = assistant_type
     # Select assistant-specific instructions
     assistant_prompt = settings.ASSISTANT_PROMPTS[assistant_type]
 
@@ -102,20 +78,6 @@ async def generate_response(
         BASE_SYSTEM_PROMPT + "\n\nAdditional instructions:\n" + assistant_prompt
     )
 
-    # Create LangGraph agent with memory checkpoint
-    if enable_memory:
-        agent = create_react_agent(
-            model=llm,
-            tools=tools,
-            checkpointer=memory,
-        )
-    else:
-        # Create LangGraph agent without memory checkpoint
-        agent = create_react_agent(
-            model=llm,
-            tools=tools,
-        )
-
     state = {
         "messages": [
             SystemMessage(content=final_system_prompt),
@@ -123,19 +85,8 @@ async def generate_response(
         ]
     }
 
-    # Create LangGraph agent with memory checkpoint
-    if enable_memory:
-        agent = create_react_agent(
-            model=llm,
-            tools=tools,
-            checkpointer=memory,
-        )
-    else:
-        # Create LangGraph agent without memory checkpoint
-        agent = create_react_agent(
-            model=llm,
-            tools=tools,
-        )
+    # Get the right agent based on UI selection
+    agent = get_agent(llm, tools, enable_memory)
 
     # Prepare config only if memory is enabled
     config = {"configurable": {"thread_id": thread_id}} if enable_memory else None
