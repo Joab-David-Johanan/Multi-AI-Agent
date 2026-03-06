@@ -61,6 +61,7 @@ async def generate_response(
     # ------------------------------------------------------------------
     # Improved base guardrails
     # ------------------------------------------------------------------
+
     BASE_SYSTEM_PROMPT = """
     You are a professional AI assistant.
 
@@ -72,6 +73,19 @@ async def generate_response(
     - Never generate meta conversation.
     - Provide the final answer directly.
     - If the question is about current prices, provide the latest known estimate and mention it may not be real-time.
+
+    After the answer, you MUST provide exactly 3 short follow-up suggestions
+    that help continue the conversation.
+
+    Output format MUST be:
+
+    ANSWER:
+    <final answer>
+
+    SUGGESTIONS:
+    1. ...
+    2. ...
+    3. ...
     """
 
     # Combine guardrails with assistant-specific instructions
@@ -127,7 +141,24 @@ async def generate_response(
         if "messages" in response:
             for message in reversed(response["messages"]):
                 if isinstance(message, AIMessage):
-                    return message.content
+
+                    content = message.content
+
+                    answer = content
+                    suggestions = []
+
+                    if "SUGGESTIONS:" in content:
+                        parts = content.split("SUGGESTIONS:")
+                        answer = parts[0].replace("ANSWER:", "").strip()
+
+                        suggestion_lines = parts[1].strip().split("\n")
+
+                        for line in suggestion_lines:
+                            line = line.strip()
+                            if line and line[0].isdigit():
+                                suggestions.append(line[2:].strip())
+
+                    return {"answer": answer, "suggestions": suggestions}
 
         # If response structure is unexpected
         raise ValueError("Unexpected agent response structure")

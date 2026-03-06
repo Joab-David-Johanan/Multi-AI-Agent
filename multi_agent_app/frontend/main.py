@@ -9,10 +9,13 @@ from multi_agent_app.frontend.history_ui import render_conversation_expander
 
 logger = get_logger(__name__)
 
+# ---------------------------------------------------
+# CHANGE 1: set_page_config must be first Streamlit call
+# ---------------------------------------------------
+st.set_page_config(page_title="Multi AI Agent", layout="wide")
+
 # Load custom css
 load_css()
-
-st.set_page_config(page_title="Multi AI Agent", layout="wide")
 
 st.title("_Choose_ _your_ :rainbow[AI Assistant] _to_ _start_ _the_ _chat_")
 st.subheader(
@@ -20,13 +23,14 @@ st.subheader(
     divider="rainbow",
 )
 
-# Initialize session
+# ---------------------------------------------------
+# Initialize session state
+# ---------------------------------------------------
 init_session()
 
-# Render chat history
-render_chat_history()
-
-# Render sidebar
+# ---------------------------------------------------
+# Render sidebar first to get configuration
+# ---------------------------------------------------
 sidebar_config = render_sidebar()
 
 assistant_type = sidebar_config["assistant_type"]
@@ -42,7 +46,11 @@ enable_suggestions = sidebar_config["enable_suggestions"]
 enable_streaming = sidebar_config["enable_streaming"]
 enable_model_comparison = sidebar_config["enable_model_comparison"]
 
-# Chat handler
+# ---------------------------------------------------
+# CHANGE 2: handle_chat BEFORE rendering history
+# This captures chat_input OR suggestion clicks
+# and updates session_state.chat_history
+# ---------------------------------------------------
 handle_chat(
     assistant_type=assistant_type,
     llm_type=llm_type,
@@ -54,7 +62,16 @@ handle_chat(
     enable_backend_cache=enable_backend_cache,
     enable_streaming=enable_streaming,
     enable_coversational_memory=enable_chat_history,
+    enable_suggestions=enable_suggestions,
 )
 
-# Render conversation history
+# ---------------------------------------------------
+# CHANGE 3: render history AFTER state updates
+# This ensures the user query appears immediately
+# ---------------------------------------------------
+render_chat_history()
+
+# ---------------------------------------------------
+# Optional: expandable conversation viewer
+# ---------------------------------------------------
 render_conversation_expander()

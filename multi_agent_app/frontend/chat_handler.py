@@ -21,6 +21,7 @@ def handle_chat(
     enable_backend_cache,
     enable_streaming,
     enable_coversational_memory,
+    enable_suggestions,
 ):
     """
     Handles chat input, backend call, caching, and response rendering.
@@ -31,7 +32,22 @@ def handle_chat(
     if "thread_id" not in st.session_state:
         st.session_state.thread_id = str(uuid.uuid4())
 
-    user_input = st.chat_input("Type your message")
+    # ---------------------------------
+    # Handle user input (chat or suggestion)
+    # ---------------------------------
+
+    chat_input = st.chat_input("Type your message")
+
+    # priority 1: user typed message
+    if chat_input and chat_input.strip():
+        user_input = chat_input.strip()
+
+    # priority 2: suggestion clicked
+    elif enable_suggestions and st.session_state.get("suggested_prompt"):
+        user_input = st.session_state.pop("suggested_prompt")
+
+    else:
+        return
 
     if not user_input or not user_input.strip():
         return
@@ -56,6 +72,7 @@ def handle_chat(
         user_input,
     )
     ai_reply = ""
+    suggestions = []
     duration = 0.0
 
     # ----------------------------
@@ -114,8 +131,15 @@ def handle_chat(
                 duration = round(time.time() - start_time, 2)
 
                 if response.status_code == 200:
-                    ai_reply = response.json().get("response", "")
-                    cache_type = response.json().get("cache", "miss")
+                    data = response.json()
+
+                    ai_reply = data.get("response", "")
+                    # Only enable suggestions if checkbox is ticked
+                    if enable_suggestions:
+                        suggestions = data.get("suggestions", [])
+                    else:
+                        suggestions = []
+                    cache_type = data.get("cache", "miss")
                     if enable_session_cache and cache_type == "miss":
                         st.session_state.cache_store[cache_key] = ai_reply
                 else:
@@ -170,6 +194,7 @@ def handle_chat(
         {
             "role": "assistant",
             "message": ai_reply,
+            "suggestions": suggestions if enable_suggestions else [],
             "time": duration,
             "mode": mode,
             "assistant": assistant_type,

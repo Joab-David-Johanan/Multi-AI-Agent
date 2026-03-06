@@ -80,11 +80,12 @@ async def chat_endpoint(request: RequestState):
                 logger.info(f"Cache hit ({cache_type}) for query: {query[:60]}")
                 return {
                     "response": cached_response,
+                    "suggestions": [],
                     "cache": cache_type,
                 }
 
         # Call async agent response
-        response = await generate_response(
+        result = await generate_response(
             request.assistant_type,
             request.llm_type,
             request.model_name,
@@ -99,14 +100,18 @@ async def chat_endpoint(request: RequestState):
         # ----------------------------
         # STORE IN CACHE
         # ----------------------------
-        if request.enable_cache and response and response != "Error":
+        if request.enable_cache and result and result != "Error":
             try:
-                store_all(query, response, cache_config, request.allow_search)
+                store_all(query, result["answer"], cache_config, request.allow_search)
                 logger.info("Stored response in cache")
             except Exception as cache_err:
                 logger.error(f"Cache store failed: {str(cache_err)}")
 
-        return {"response": response, "cache": "miss"}
+        return {
+            "response": result["answer"],
+            "suggestions": result["suggestions"],
+            "cache": "miss",
+        }
 
     except Exception as e:
         logger.error(f"Error: {str(e)}")
