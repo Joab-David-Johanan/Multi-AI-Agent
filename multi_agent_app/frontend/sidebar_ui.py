@@ -34,7 +34,7 @@ def render_sidebar():
         enable_backend_cache = st.checkbox("🧠 Global cache")
         enable_chat_history = st.checkbox("Conversational Memory")
         enable_suggestions = st.checkbox("Chat suggestions")
-        enable_model_comparison = st.checkbox("Model comparison")
+        # enable_model_comparison = st.checkbox("Model comparison")
         enable_streaming = st.checkbox("Streaming output")
 
     # RETURN all variables
@@ -50,5 +50,4 @@ def render_sidebar():
         "enable_chat_history": enable_chat_history,
         "enable_suggestions": enable_suggestions,
         "enable_streaming": enable_streaming,
-        "enable_model_comparison": enable_model_comparison,
     }

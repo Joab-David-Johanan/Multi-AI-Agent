@@ -32,9 +32,9 @@ def handle_chat(
     if "thread_id" not in st.session_state:
         st.session_state.thread_id = str(uuid.uuid4())
 
-    # ---------------------------------
+    # ---------------------------------------
     # Handle user input (chat or suggestion)
-    # ---------------------------------
+    # ---------------------------------------
 
     chat_input = st.chat_input("Type your message")
 

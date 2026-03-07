@@ -450,6 +450,9 @@ streamlit run multi_agent_app/frontend/main.py
 
 Potential future work:
 
+- Implement TTL (time to live) rules for cache invalidation strategy
+- Model comparison for same user query
+- User votes on whether AI response was useful
 - Observability (LangSmith / OpenTelemetry)
 - Evaluation pipelines
 - Kubernetes deployment
