@@ -1,13 +1,15 @@
 
-![Python](https://img.shields.io/badge/Python-3.10-blue)
-![LangChain](https://img.shields.io/badge/LangChain-LLM%20Framework-purple)
-![LangGraph](https://img.shields.io/badge/LangGraph-Agent%20Orchestration-blueviolet)
-![FastAPI](https://img.shields.io/badge/FastAPI-Backend%20API-teal)
-![Streamlit](https://img.shields.io/badge/Streamlit-App%20Framework-brightgreen)
-![MLOps](https://img.shields.io/badge/MLOps-CI%2FCD%20Pipeline-yellow)
-![Jenkins](https://img.shields.io/badge/Jenkins-CI%2FCD-red)
-![AWS](https://img.shields.io/badge/AWS-Cloud-orange)
-![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![LangChain](https://img.shields.io/badge/LangChain-121212?style=for-the-badge)
+![LangGraph](https://img.shields.io/badge/LangGraph-Agent%20Orchestration-6C47FF?style=for-the-badge)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
+![MLOps](https://img.shields.io/badge/MLOps-FFCC00?style=for-the-badge)
+![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=for-the-badge&logo=jenkins&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=amazonaws&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
 
 ---
 
@@ -48,6 +50,7 @@ The application integrates:
 - **LLM integrations (OpenAI and Groq)**
 - **External tool usage via Tavily search**
 - **Caching mechanisms for optimized performance**
+- **Observability dashboard using Prometheus and Grafana**
 - **Docker-based containerization**
 - **CI/CD pipeline using Jenkins**
 - **AWS deployment infrastructure**
@@ -67,6 +70,7 @@ While many LLM applications focus only on generating responses, production syste
 - Conversational continuity
 - System reliability
 - Task specialization
+- Observability
 
 This project explores how **agent orchestration, caching strategies, tool integration, and multi-model support** can be combined to build a robust conversational AI platform.
 
@@ -78,6 +82,7 @@ The vision behind this system is to:
 - Improve **system reliability**
 - Support **specialized domain assistants**
 - Demonstrate **production-grade MLOps practices**
+- Showcase **observability through dashboards**
 
 [⬆ Back to Top](#table-of-contents)
 
@@ -97,6 +102,7 @@ AI_agent_app
 ├── Dockerfile
 ├── requirements.txt
 └── pyproject.toml
+└── prometheus.yml
 ```
 
 [⬆ Back to Top](#table-of-contents)
@@ -128,6 +134,7 @@ Core architectural components:
 - **External tool integrations**
 - **Caching layer**
 - **Multi-model LLM support**
+- **Real-time dashboard**
 
 [⬆ Back to Top](#table-of-contents)
 
@@ -319,6 +326,19 @@ Domain-specific assistants:
 - Medical
 - Legal
 
+---
+
+### 7. Multi-Agent applications lack observability
+
+**Pain Point**
+
+The user is not able to log metrics, track them and view them in clean dashboards.
+
+**Solution**
+
+Prometheus continuously scrapes metrics exposed by the FastAPI backend at the `/metrics` endpoint, collecting data such as request counts, latency, cache hits, and errors. Grafana then queries Prometheus to visualize these metrics in dashboards, which are embedded directly inside the Streamlit app using an iframe for **real-time observability**.
+
+
 [⬆ Back to Top](#table-of-contents)
 
 ---
@@ -340,6 +360,11 @@ Domain-specific assistants:
 ### Tools
 
 - Tavily Search API
+
+### Monitoring Stack
+
+- Prometheus
+- Grafana
 
 ### Infrastructure
 
@@ -453,7 +478,6 @@ Potential future work:
 - Implement TTL (time to live) rules for cache invalidation strategy
 - Model comparison for same user query
 - User votes on whether AI response was useful
-- Observability (LangSmith / OpenTelemetry)
 - Evaluation pipelines
 - Kubernetes deployment
 
