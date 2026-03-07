@@ -1,0 +1,12 @@
+1. ai_agent_requests_total - Stat - Total AI Requests
+
+2. rate(ai_agent_requests_total[1m]) - Time series - Requests Per Minute
+
+3.  rate(ai_agent_latency_seconds_sum[1m]) 
+    /                                         - Time series - Average Response Latency
+    rate(ai_agent_latency_seconds_count[1m])
+
+
+4. rate(ai_agent_cache_hits_total[1m]) - Stat - Cache Hits
+
+5. ai_agent_errors_total - Stat - Backend Errors
