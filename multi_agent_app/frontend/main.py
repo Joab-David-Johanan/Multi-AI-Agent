@@ -10,14 +10,19 @@ from multi_agent_app.frontend.history_ui import render_conversation_expander
 logger = get_logger(__name__)
 
 # ---------------------------------------------------
-# CHANGE 1: set_page_config must be first Streamlit call
+# Streamlit requirement:
+# set_page_config must be the FIRST Streamlit command
 # ---------------------------------------------------
 st.set_page_config(page_title="Multi AI Agent", layout="wide")
 
-# Load custom css
+# Load custom CSS styling
 load_css()
 
+# ---------------------------------------------------
+# Page header
+# ---------------------------------------------------
 st.title("_Choose_ _your_ :rainbow[AI Assistant] _to_ _start_ _the_ _chat_")
+
 st.subheader(
     ":rainbow[_Compare_ _different_ _assistants_, _models_ _and_ _optimizations_]",
     divider="rainbow",
@@ -25,11 +30,12 @@ st.subheader(
 
 # ---------------------------------------------------
 # Initialize session state
+# (chat history, cache store, suggestions)
 # ---------------------------------------------------
 init_session()
 
 # ---------------------------------------------------
-# Render sidebar first to get configuration
+# Render sidebar and capture configuration
 # ---------------------------------------------------
 sidebar_config = render_sidebar()
 
@@ -44,12 +50,12 @@ enable_backend_cache = sidebar_config["enable_backend_cache"]
 enable_chat_history = sidebar_config["enable_chat_history"]
 enable_suggestions = sidebar_config["enable_suggestions"]
 enable_streaming = sidebar_config["enable_streaming"]
-enable_model_comparison = sidebar_config["enable_model_comparison"]
 
 # ---------------------------------------------------
-# CHANGE 2: handle_chat BEFORE rendering history
-# This captures chat_input OR suggestion clicks
-# and updates session_state.chat_history
+# Handle chat interaction
+# IMPORTANT:
+# This function internally renders st.chat_input()
+# so it must be called before rendering history
 # ---------------------------------------------------
 handle_chat(
     assistant_type=assistant_type,
@@ -66,12 +72,24 @@ handle_chat(
 )
 
 # ---------------------------------------------------
-# CHANGE 3: render history AFTER state updates
-# This ensures the user query appears immediately
+# Render conversation messages
 # ---------------------------------------------------
 render_chat_history()
 
 # ---------------------------------------------------
-# Optional: expandable conversation viewer
+# Expandable conversation viewer
 # ---------------------------------------------------
 render_conversation_expander()
+
+# ---------------------------------------------------
+# Optional observability dashboard
+# Placed in an expander so it does not interfere
+# with chat layout
+# ---------------------------------------------------
+with st.expander("📊 System Metrics & Observability", expanded=False):
+
+    st.components.v1.iframe(
+        "http://localhost:3000/d/adxzmm8/total-ai-agent-requests?orgId=1&from=now-5m&to=now&timezone=browser&kiosk&refresh=5s",
+        height=900,
+        scrolling=True,
+    )

@@ -1,0 +1,12 @@
+MSYS_NO_PATHCONV=1 docker run -d \
+-p 9090:9090 \
+--name prometheus \
+-v /c/Coding/Projects/AI_agent_app/prometheus.yml:/etc/prometheus/prometheus.yml \
+prom/prometheus
+
+
+docker run -d \
+-p 3000:3000 \
+--name grafana \
+-e GF_SECURITY_ALLOW_EMBEDDING=true \
+grafana/grafana
