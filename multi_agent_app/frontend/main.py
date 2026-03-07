@@ -89,7 +89,7 @@ render_conversation_expander()
 with st.expander("📊 System Metrics & Observability", expanded=False):
 
     st.components.v1.iframe(
-        "http://localhost:3000/d/adxzmm8/total-ai-agent-requests?orgId=1&from=now-5m&to=now&timezone=browser&kiosk&refresh=5s",
+        "http://localhost:3000/d/adxzmm8/total-ai-agent-requests?orgId=1&from=now-5m&to=now&timezone=browser",
         height=900,
         scrolling=True,
     )

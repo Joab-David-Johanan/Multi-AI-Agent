@@ -75,7 +75,7 @@ async def generate_response(
     - If the question is about current prices, provide the latest known estimate and mention it may not be real-time.
 
     After the answer, you MUST provide exactly 3 short follow-up suggestions
-    that help continue the conversation.
+    that help continue the conversation. The suggestions SHOULD NOT be questions but CLEAR FOLLOW-UPS.
 
     Output format MUST be:
 
