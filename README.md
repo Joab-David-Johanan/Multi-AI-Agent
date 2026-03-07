@@ -55,6 +55,57 @@ The application integrates:
 - **CI/CD pipeline using Jenkins**
 - **AWS deployment infrastructure**
 
+
+## Example Conversations
+
+![Conversation 1](assets/conversation_1.png)
+
+Demonstrates a typical interaction between the user and the AI assistant where the system processes the query, invokes the selected model, and returns a structured response.
+
+![Conversation 2](assets/conversation_2.png)
+
+Shows another conversation flow highlighting how the assistant handles different queries while maintaining consistent response formatting and helpful follow-up suggestions.
+
+---
+
+## Session Cache Optimization
+
+![Session cache](assets/session_cache.png)
+
+Illustrates how session-level caching stores previous responses during the active session, allowing repeated queries to be answered instantly without calling the model again.
+
+---
+
+## Smart Chat Suggestions
+
+![Chat suggestions](assets/chat_suggestions.png)
+
+Displays automatically generated follow-up suggestions that help users continue the conversation and explore related topics without needing to craft new prompts manually.
+
+---
+
+## Separation of Concerns Architecture
+
+![Separation of concerns](assets/separation_of_concerns.png)
+
+Highlights the modular architecture of the system where frontend, backend, caching, and agent logic are separated into dedicated components to improve maintainability and scalability.
+
+---
+
+## Conversational Memory
+
+![Chat history](assets/chat_history.png)
+
+Shows how conversation history is maintained across interactions, enabling the assistant to provide context-aware responses during multi-turn conversations.
+
+---
+
+## Observability Dashboard
+
+![Dashboard](assets/dashboard.png)
+
+Presents the monitoring dashboard powered by Prometheus and Grafana, displaying metrics such as request volume, latency, cache hits, and system errors in real time.
+
 [⬆ Back to Top](#table-of-contents)
 
 ---
