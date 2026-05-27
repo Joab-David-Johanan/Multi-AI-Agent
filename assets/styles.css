@@ -1,7 +1,53 @@
 /* ========== GLOBAL APP BACKGROUND ========== */
-/* .stApp {
-    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
-} */
+.stApp {
+    background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 38%, #ccfbf1 100%) !important;
+}
+
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 38%, #ccfbf1 100%) !important;
+}
+
+[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stDecoration"] {
+    background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 38%, #ccfbf1 100%) !important;
+}
+
+[data-testid="stBottom"],
+[data-testid="stBottomBlockContainer"],
+[data-testid="stChatFloatingInputContainer"] {
+    background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 38%, #ccfbf1 100%) !important;
+    border-top: none !important;
+    box-shadow: none !important;
+}
+
+[data-testid="stBottom"] {
+    pointer-events: none !important;
+}
+
+[data-testid="stBottomBlockContainer"] {
+    padding: 0.5rem 5rem 1rem 5rem !important;
+    pointer-events: none !important;
+}
+
+.block-container {
+    padding-top: 3.25rem !important;
+    padding-bottom: 2rem !important;
+    max-width: 1180px !important;
+}
+
+[data-testid="stMain"] h1 {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    line-height: 1.08 !important;
+    color: #0f172a !important;
+    text-shadow: 0 2px 14px rgba(15, 23, 42, 0.08);
+}
+
+[data-testid="stMain"] h3 {
+    margin-top: 0.5rem !important;
+    color: #334155 !important;
+}
 
 /* Main content wrapper
 .main {
@@ -55,6 +101,39 @@ section[data-testid="stSidebar"] * {
     color: #f8fafc !important;
 }
 
+/* -------- SIDEBAR COLLAPSE CONTROL -------- */
+div[data-testid="stSidebarHeader"] {
+    height: 60px !important;
+}
+
+div[data-testid="stSidebarCollapseButton"] {
+    transform: translateY(16px) !important;
+    margin-right: 0.35rem !important;
+}
+
+div[data-testid="stSidebarCollapseButton"] button {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 999px !important;
+    background: rgba(255, 255, 255, 0.14) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22) !important;
+    backdrop-filter: blur(14px) !important;
+    transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease !important;
+}
+
+div[data-testid="stSidebarCollapseButton"] button:hover {
+    background: rgba(56, 189, 248, 0.26) !important;
+    box-shadow: 0 10px 26px rgba(56, 189, 248, 0.26) !important;
+    transform: translateX(-1px) !important;
+}
+
+div[data-testid="stSidebarCollapseButton"] svg {
+    width: 19px !important;
+    height: 19px !important;
+    color: #e0f2fe !important;
+}
+
 /* Sidebar selectboxes */
 section[data-testid="stSidebar"] .stSelectbox div {
     background-color: #1e293b !important;
@@ -63,33 +142,78 @@ section[data-testid="stSidebar"] .stSelectbox div {
 
 /* -------- CHAT MESSAGES -------- */
 div[data-testid="stChatMessage"] {
-    border-radius: 16px !important;
+    border-radius: 14px !important;
     padding: 1rem !important;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.05) !important;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08) !important;
     margin-bottom: 1rem !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
 }
 
 /* ========== USER MESSAGE ========== */
 div[data-testid="stChatMessage"]:has(
     div[data-testid="stChatMessageAvatarUser"]
 ) {
-    background: linear-gradient(135deg, #f5b7ae 0%, #f94b4b 100%) !important;
-    border-radius: 16px !important;
+    background: linear-gradient(135deg, #f5888f 0%, #fb637a 52%, #f13c57 100%) !important;
+    border-radius: 14px !important;
+    color: #111827 !important;
 }
 
 /* ========== ASSISTANT MESSAGE ========== */
 div[data-testid="stChatMessage"]:has(
     div[data-testid="stChatMessageAvatarAssistant"]
 ) {
-    background: linear-gradient(135deg, #a7f787 0%, #37cc15 100%) !important;
-    border-radius: 16px !important;
+    background: linear-gradient(135deg, #8af5e6 0%, #2dd4bf 52%, #22c55e 100%) !important;
+    border-radius: 14px !important;
+    color: #052e16 !important;
 }
 
 /* -------- INPUT BOX -------- */
+div[data-testid="stChatInput"] {
+    max-width: 900px !important;
+    margin: 0 auto !important;
+    pointer-events: auto !important;
+}
+
+div[data-testid="stChatInput"] > div {
+    background: #eef7ff !important;
+    border: 1.5px solid #38bdf8 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 8px 24px rgba(14, 165, 233, 0.14) !important;
+}
+
 div[data-testid="stChatInput"] textarea {
-    border-radius: 12px !important;
-    border: 1px solid #c4f9d3 !important;
-    padding: 0.8rem !important;
+    min-height: 42px !important;
+    max-height: 96px !important;
+    background: #eef7ff !important;
+    color: #0f172a !important;
+    border: none !important;
+    border-radius: 14px !important;
+    padding: 0.55rem 0.75rem !important;
+    line-height: 1.35 !important;
+    box-shadow: none !important;
+}
+
+div[data-testid="stChatInput"] textarea::placeholder {
+    color: #64748b !important;
+    opacity: 1 !important;
+}
+
+div[data-testid="stChatInput"] textarea:focus {
+    background: #ffffff !important;
+    outline: none !important;
+}
+
+div[data-testid="stChatInput"] button {
+    background: #dbeafe !important;
+    color: #0369a1 !important;
+    border-radius: 10px !important;
+    border: 1px solid #bfdbfe !important;
+    box-shadow: none !important;
+}
+
+div[data-testid="stChatInput"] button:hover {
+    background: #bfdbfe !important;
+    color: #075985 !important;
 }
 
 /* -------- BUTTONS (Keep Green Theme) -------- */
