@@ -3,12 +3,14 @@ langchain-classic
 langchain-groq
 langchain-openai
 langchain-community
+langchain-tavily
 langgraph
 python-dotenv
 uvicorn
 fastapi
 pydantic 
 streamlit
+prometheus-fastapi-instrumentator
 reportlab
 faiss-cpu
 sentence-transformers

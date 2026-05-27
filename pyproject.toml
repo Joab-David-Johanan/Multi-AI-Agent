@@ -11,12 +11,14 @@ dependencies = [
     "langchain-groq",
     "langchain-openai",
     "langchain-community",
+    "langchain-tavily",
     "python-dotenv",
     "uvicorn",
     "fastapi",
     "pydantic",
     "streamlit",
-    "langgraph"
+    "langgraph",
+    "prometheus-fastapi-instrumentator",
 ]
 
 requires-python = ">=3.11"
