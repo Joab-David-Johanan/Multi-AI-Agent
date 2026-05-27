@@ -2,12 +2,13 @@ import streamlit as st
 import requests
 import time
 import uuid
+import os
 
 from multi_agent_app.common.logger import get_logger
 
 logger = get_logger(__name__)
 
-BACKEND_URL = "http://127.0.0.1:8000/chat"
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000/chat")
 
 
 def handle_chat(
