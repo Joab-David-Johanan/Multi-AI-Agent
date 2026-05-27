@@ -1,3 +1,5 @@
+import argparse
+import os
 import subprocess
 import threading
 import time
@@ -80,17 +82,34 @@ def run_backend():
 
 
 # -----------------------------------
-# Frontend
+# Streamlit Frontend
 # -----------------------------------
-def run_frontend():
+def run_streamlit_frontend():
     try:
-        logger.info("Starting frontend service...")
+        logger.info("Starting Streamlit frontend service...")
         subprocess.run(
             ["streamlit", "run", "multi_agent_app/frontend/main.py"],
             check=True,
         )
     except Exception as e:
-        logger.error("Problem with frontend service")
+        logger.error("Problem with Streamlit frontend service")
+        logger.error(str(e))
+
+
+# -----------------------------------
+# React Frontend
+# -----------------------------------
+def run_react_frontend():
+    try:
+        logger.info("Starting React frontend service...")
+        npm_command = "npm.cmd" if os.name == "nt" else "npm"
+        subprocess.run(
+            [npm_command, "run", "dev", "--", "--host", "127.0.0.1"],
+            cwd="multi_agent_app/react_frontend",
+            check=True,
+        )
+    except Exception as e:
+        logger.error("Problem with React frontend service")
         logger.error(str(e))
 
 
@@ -99,6 +118,17 @@ def run_frontend():
 # -----------------------------------
 if __name__ == "__main__":
     try:
+        parser = argparse.ArgumentParser(
+            description="Launch the AI agent app with Streamlit or React frontend."
+        )
+        parser.add_argument(
+            "--frontend",
+            choices=["streamlit", "react"],
+            default="streamlit",
+            help="Frontend to launch. Defaults to streamlit.",
+        )
+        args = parser.parse_args()
+
         # Start Redis
         start_redis()
         time.sleep(2)
@@ -111,7 +141,10 @@ if __name__ == "__main__":
         time.sleep(3)
 
         # Start Frontend (main thread)
-        run_frontend()
+        if args.frontend == "react":
+            run_react_frontend()
+        else:
+            run_streamlit_frontend()
 
     except Exception as e:
         logger.exception(f"Launcher error: {str(e)}")
