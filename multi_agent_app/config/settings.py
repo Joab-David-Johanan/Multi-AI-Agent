@@ -149,9 +149,10 @@ Be precise, neutral, and legally accurate.
 
     # Available OpenAI models
     ALLOWED_OPENAI_MODEL_NAMES = [
-        "gpt-5-nano-2025-08-07",
-        "gpt-4.1-nano-2025-04-14",
-        "gpt-5-mini-2025-08-07",
+        "gpt-5.5",
+        "gpt-5.4",
+        "gpt-5.4-mini",
+        "gpt-5.4-nano",
     ]
 
     # Temperature ranges
