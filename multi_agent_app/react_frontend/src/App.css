@@ -495,6 +495,26 @@ input[type='range'] {
   line-height: 1.45;
 }
 
+.judge-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  width: fit-content;
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(238, 242, 255, 0.82);
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.judge-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+}
+
 .evaluation-header button {
   min-width: 150px;
   min-height: 42px;
@@ -638,14 +658,32 @@ input[type='range'] {
   color: #ffffff;
   font-size: 0.72rem;
   font-weight: 900;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    background 0.16s ease;
 }
 
 .result-badge.pass {
-  background: #0f766e;
+  background: linear-gradient(135deg, #059669, #10b981);
+  box-shadow: 0 8px 18px rgba(16, 185, 129, 0.22);
 }
 
 .result-badge.fail {
-  background: #be123c;
+  background: linear-gradient(135deg, #be123c, #ef4444);
+  box-shadow: 0 8px 18px rgba(239, 68, 68, 0.22);
+}
+
+.result-badge.pass:hover {
+  background: linear-gradient(135deg, #047857, #34d399);
+  box-shadow: 0 12px 26px rgba(16, 185, 129, 0.32);
+  transform: translateY(-1px);
+}
+
+.result-badge.fail:hover {
+  background: linear-gradient(135deg, #991b1b, #fb7185);
+  box-shadow: 0 12px 26px rgba(239, 68, 68, 0.32);
+  transform: translateY(-1px);
 }
 
 .result-prompt {
@@ -673,6 +711,136 @@ input[type='range'] {
   font-size: 0.76rem;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.evaluation-method-note {
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(59, 130, 246, 0.1));
+  border: 1px solid rgba(59, 130, 246, 0.14);
+  color: #334155;
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.final-verdict {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  border-radius: 12px;
+  padding: 12px;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.final-verdict.pass {
+  background: linear-gradient(135deg, rgba(220, 252, 231, 0.92), rgba(209, 250, 229, 0.76));
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  box-shadow: 0 14px 32px rgba(16, 185, 129, 0.12);
+}
+
+.final-verdict.fail {
+  background: linear-gradient(135deg, rgba(255, 241, 242, 0.96), rgba(254, 226, 226, 0.82));
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  box-shadow: 0 14px 32px rgba(239, 68, 68, 0.12);
+}
+
+.final-verdict:hover {
+  transform: translateY(-1px);
+}
+
+.final-verdict.pass:hover {
+  border-color: rgba(5, 150, 105, 0.48);
+  box-shadow: 0 18px 40px rgba(16, 185, 129, 0.2);
+}
+
+.final-verdict.fail:hover {
+  border-color: rgba(220, 38, 38, 0.5);
+  box-shadow: 0 18px 40px rgba(239, 68, 68, 0.22);
+}
+
+.final-verdict span {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.final-verdict.pass span {
+  color: #047857;
+}
+
+.final-verdict.fail span {
+  color: #be123c;
+}
+
+.final-verdict > div {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.final-verdict strong {
+  display: inline-flex;
+  min-width: 58px;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-transform: capitalize;
+}
+
+.final-verdict.pass strong {
+  background: linear-gradient(135deg, #059669, #10b981);
+}
+
+.final-verdict.fail strong {
+  background: linear-gradient(135deg, #be123c, #ef4444);
+}
+
+.final-verdict small {
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #07132f;
+  font-weight: 900;
+}
+
+.judge-score-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.judge-score {
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px solid rgba(59, 130, 246, 0.12);
+}
+
+.judge-score span {
+  display: block;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.judge-score strong {
+  display: block;
+  margin-top: 6px;
+  color: #1d4ed8;
 }
 
 .evaluation-result p {
@@ -1058,6 +1226,10 @@ input[type='range'] {
   }
 
   .dashboard-row {
+    grid-template-columns: 1fr;
+  }
+
+  .judge-score-grid {
     grid-template-columns: 1fr;
   }
 

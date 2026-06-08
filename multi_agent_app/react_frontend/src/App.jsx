@@ -30,6 +30,77 @@ const initialMessages = [
   },
 ]
 
+function EvaluationResultCard({ result }) {
+  return (
+    <article className="evaluation-result">
+      <div className="result-topline">
+        <div>
+          <span className={result.passed ? 'result-badge pass' : 'result-badge fail'}>
+            {result.passed ? 'Pass' : 'Fail'}
+          </span>
+          <strong>{result.id}</strong>
+        </div>
+        <small>{result.score}/5 · {result.latency_seconds}s</small>
+      </div>
+      <p className="result-prompt">{result.assistant_type}: {result.prompt}</p>
+      <div className="response-compare">
+        <div>
+          <span>Model response</span>
+          <p>{result.response || 'No response returned.'}</p>
+        </div>
+        <div>
+          <span>Ground truth response</span>
+          <p>{result.ground_truth_response}</p>
+        </div>
+      </div>
+      {result.final && (
+        <div className={`final-verdict ${result.final.verdict}`}>
+          <span>Final verdict</span>
+          <div>
+            <strong>{result.final.verdict}</strong>
+            <small>{result.final.score}/5</small>
+          </div>
+        </div>
+      )}
+      <details>
+        <summary>Automated rule checks</summary>
+        <p>{result.expected_behavior}</p>
+        <ul>
+          {result.checks.map((check) => (
+            <li key={check.name}>
+              <span className={check.passed ? 'check-pass' : 'check-fail'}>
+                {check.passed ? 'Pass' : 'Fail'}
+              </span>
+              {check.name}: {check.note}
+            </li>
+          ))}
+        </ul>
+      </details>
+      {result.judge?.enabled && (
+        <details>
+          <summary>LLM judge</summary>
+          {result.judge.error ? (
+            <p>{result.judge.error}</p>
+          ) : (
+            <>
+              <div className="judge-score-grid">
+                {Object.entries(result.judge.scores).map(([dimension, score]) => (
+                  <div className="judge-score" key={dimension}>
+                    <span>{dimension.replaceAll('_', ' ')}</span>
+                    <strong>{score}/5</strong>
+                  </div>
+                ))}
+              </div>
+              <p>{result.judge.reasoning}</p>
+              <p>Judge verdict: {result.judge.verdict} · {result.judge.overall_score}/5</p>
+            </>
+          )}
+        </details>
+      )}
+    </article>
+  )
+}
+
 function createThreadId() {
   if (crypto.randomUUID) {
     return crypto.randomUUID()
@@ -53,6 +124,7 @@ function App() {
   const [error, setError] = useState('')
   const [evaluationMode, setEvaluationMode] = useState(false)
   const [evaluationView, setEvaluationView] = useState('latest')
+  const [useLlmJudge, setUseLlmJudge] = useState(false)
   const [evaluationError, setEvaluationError] = useState('')
   const [evaluationResult, setEvaluationResult] = useState(null)
   const [evaluationHistory, setEvaluationHistory] = useState([])
@@ -71,8 +143,9 @@ function App() {
       enableMemory ? 'memory on' : 'memory off',
       enableCache ? 'cache on' : 'cache off',
       evaluationMode ? 'evaluation mode' : 'chat mode',
+      useLlmJudge ? 'judge on' : 'judge off',
     ].join(' / ')
-  }, [assistantType, enableCache, enableMemory, evaluationMode, llmType, modelName, temperature])
+  }, [assistantType, enableCache, enableMemory, evaluationMode, llmType, modelName, temperature, useLlmJudge])
 
   function handleProviderChange(nextProvider) {
     setLlmType(nextProvider)
@@ -208,6 +281,7 @@ function App() {
           model_name: modelName,
           temperature,
           allow_search: allowSearch,
+          use_llm_judge: useLlmJudge,
         }),
       })
 
@@ -398,6 +472,14 @@ function App() {
                 <p>
                   Runs backend-owned test cases with cache and memory disabled by the evaluator.
                 </p>
+                <label className="judge-toggle">
+                  <input
+                    checked={useLlmJudge}
+                    onChange={(event) => setUseLlmJudge(event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span>Use LLM judge</span>
+                </label>
               </div>
               <button disabled={isEvaluating || isLoading} onClick={runEvaluation} type="button">
                 {isEvaluating ? 'Evaluating...' : 'Run evaluation'}
@@ -422,6 +504,12 @@ function App() {
             </div>
 
             {evaluationError && <div className="error-banner">{evaluationError}</div>}
+
+            <div className="evaluation-method-note">
+              {useLlmJudge
+                ? 'Hybrid scoring uses 40% deterministic checks and 60% LLM judge score. High-confidence judge passes can override brittle keyword misses.'
+                : 'Rule-only scoring uses deterministic checks from the golden dataset.'}
+            </div>
 
             {evaluationView === 'latest' && !evaluationResult && !evaluationError && (
               <div className="empty-evaluation">
@@ -464,42 +552,7 @@ function App() {
 
                 <div className="evaluation-results">
                   {evaluationResult.results.map((result) => (
-                    <article className="evaluation-result" key={result.id}>
-                      <div className="result-topline">
-                        <div>
-                          <span className={result.passed ? 'result-badge pass' : 'result-badge fail'}>
-                            {result.passed ? 'Pass' : 'Fail'}
-                          </span>
-                          <strong>{result.id}</strong>
-                        </div>
-                        <small>{result.score}/5 / {result.latency_seconds}s</small>
-                      </div>
-                      <p className="result-prompt">{result.assistant_type}: {result.prompt}</p>
-                      <div className="response-compare">
-                        <div>
-                          <span>Model response</span>
-                          <p>{result.response || 'No response returned.'}</p>
-                        </div>
-                        <div>
-                          <span>Ground truth response</span>
-                          <p>{result.ground_truth_response}</p>
-                        </div>
-                      </div>
-                      <details>
-                        <summary>Automated rule checks</summary>
-                        <p>{result.expected_behavior}</p>
-                        <ul>
-                          {result.checks.map((check) => (
-                            <li key={check.name}>
-                              <span className={check.passed ? 'check-pass' : 'check-fail'}>
-                                {check.passed ? 'Pass' : 'Fail'}
-                              </span>
-                              {check.name}: {check.note}
-                            </li>
-                          ))}
-                        </ul>
-                      </details>
-                    </article>
+                    <EvaluationResultCard key={result.id} result={result} />
                   ))}
                 </div>
               </>
@@ -565,42 +618,7 @@ function App() {
                           {expandedDashboardRun === run.run_id && (
                             <div className="dashboard-run-details">
                               {run.results.map((result) => (
-                                <article className="evaluation-result compact" key={result.id}>
-                                  <div className="result-topline">
-                                    <div>
-                                      <span className={result.passed ? 'result-badge pass' : 'result-badge fail'}>
-                                        {result.passed ? 'Pass' : 'Fail'}
-                                      </span>
-                                      <strong>{result.id}</strong>
-                                    </div>
-                                    <small>{result.score}/5 / {result.latency_seconds}s</small>
-                                  </div>
-                                  <p className="result-prompt">{result.assistant_type}: {result.prompt}</p>
-                                  <div className="response-compare">
-                                    <div>
-                                      <span>Model response</span>
-                                      <p>{result.response || 'No response returned.'}</p>
-                                    </div>
-                                    <div>
-                                      <span>Ground truth response</span>
-                                      <p>{result.ground_truth_response}</p>
-                                    </div>
-                                  </div>
-                                  <details>
-                                    <summary>Automated rule checks</summary>
-                                    <p>{result.expected_behavior}</p>
-                                    <ul>
-                                      {result.checks.map((check) => (
-                                        <li key={check.name}>
-                                          <span className={check.passed ? 'check-pass' : 'check-fail'}>
-                                            {check.passed ? 'Pass' : 'Fail'}
-                                          </span>
-                                          {check.name}: {check.note}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </details>
-                                </article>
+                                <EvaluationResultCard key={result.id} result={result} />
                               ))}
                             </div>
                           )}
