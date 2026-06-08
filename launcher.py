@@ -1,150 +1,101 @@
 import argparse
-import os
 import subprocess
-import threading
+import sys
 import time
-from dotenv import load_dotenv
-from multi_agent_app.common.logger import get_logger
-from multi_agent_app.common.custom_exception import CustomException
+import webbrowser
 
-logger = get_logger(__name__)
-load_dotenv()
+FRONTENDS = {
+    "streamlit": {
+        "profile": "streamlit",
+        "url": "http://127.0.0.1:8501",
+    },
+    "react": {
+        "profile": "react",
+        "url": "http://127.0.0.1:5173",
+    },
+}
 
 
-# -----------------------------------
-# Start Redis via Docker
-# -----------------------------------
-def start_redis():
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Start or stop the app through Docker Compose."
+    )
+    parser.add_argument(
+        "--frontend",
+        choices=FRONTENDS.keys(),
+        default="streamlit",
+        help="Choose which frontend to open. Use streamlit or react.",
+    )
+    parser.add_argument(
+        "--down",
+        action="store_true",
+        help="Stop and remove all Docker Compose containers for this app.",
+    )
+    return parser.parse_args()
+
+
+def run_compose(command, action_label):
+    print(action_label)
+    print(" ".join(command))
+
     try:
-        logger.info("Checking Redis Docker container...")
-
-        # Check if container exists
-        result = subprocess.run(
-            [
-                "docker",
-                "ps",
-                "-a",
-                "--filter",
-                "name=redis-cache",
-                "--format",
-                "{{.Names}}",
-            ],
-            capture_output=True,
-            text=True,
-        )
-
-        if "redis-cache" in result.stdout:
-            logger.info("Redis container exists. Starting...")
-            subprocess.run(["docker", "start", "redis-cache"], check=True)
-        else:
-            logger.info("Creating new Redis container...")
-            subprocess.run(
-                [
-                    "docker",
-                    "run",
-                    "-d",
-                    "-p",
-                    "6379:6379",
-                    "--name",
-                    "redis-cache",
-                    "redis",
-                ],
-                check=True,
-            )
-
-        logger.info("Redis is running.")
-
-    except Exception as e:
-        logger.error("Failed to start Redis via Docker.")
-        logger.error(str(e))
+        return subprocess.run(command, check=False).returncode
+    except FileNotFoundError:
+        print("Docker Compose was not found. Start Docker Desktop and try again.")
+        return 1
 
 
-# -----------------------------------
-# Backend
-# -----------------------------------
-def run_backend():
-    try:
-        logger.info("Starting backend service...")
-        subprocess.run(
-            [
-                "uvicorn",
-                "multi_agent_app.backend.api:app",
-                "--host",
-                "127.0.0.1",
-                "--port",
-                "8000",
-            ],
-            check=True,
-        )
-    except Exception as e:
-        logger.error("Problem with backend service")
-        logger.error(str(e))
+def start_frontend(frontend_name):
+    frontend = FRONTENDS[frontend_name]
+
+    # One launcher command should do the whole job: build if needed, start in
+    # the background, and then open the correct browser URL.
+    command = [
+        "docker",
+        "compose",
+        "--profile",
+        frontend["profile"],
+        "up",
+        "-d",
+        "--build",
+    ]
+
+    return_code = run_compose(
+        command,
+        f"Starting {frontend_name} with Docker Compose...",
+    )
+
+    if return_code != 0:
+        return return_code
+
+    # Give Streamlit/Vite a short moment to bind to the port before opening.
+    time.sleep(3)
+    webbrowser.open(frontend["url"])
+    print(f"Opened {frontend['url']}")
+    return 0
 
 
-# -----------------------------------
-# Streamlit Frontend
-# -----------------------------------
-def run_streamlit_frontend():
-    try:
-        logger.info("Starting Streamlit frontend service...")
-        subprocess.run(
-            ["streamlit", "run", "multi_agent_app/frontend/main.py"],
-            check=True,
-        )
-    except Exception as e:
-        logger.error("Problem with Streamlit frontend service")
-        logger.error(str(e))
+def stop_everything():
+    # Include both profiles so Compose also stops optional frontend services.
+    command = [
+        "docker",
+        "compose",
+        "--profile",
+        "streamlit",
+        "--profile",
+        "react",
+        "down",
+    ]
+    return run_compose(command, "Stopping all Docker Compose containers...")
 
 
-# -----------------------------------
-# React Frontend
-# -----------------------------------
-def run_react_frontend():
-    try:
-        logger.info("Starting React frontend service...")
-        npm_command = "npm.cmd" if os.name == "nt" else "npm"
-        subprocess.run(
-            [npm_command, "run", "dev", "--", "--host", "127.0.0.1"],
-            cwd="multi_agent_app/react_frontend",
-            check=True,
-        )
-    except Exception as e:
-        logger.error("Problem with React frontend service")
-        logger.error(str(e))
+def main():
+    args = parse_args()
+    if args.down:
+        return stop_everything()
+
+    return start_frontend(args.frontend)
 
 
-# -----------------------------------
-# MAIN
-# -----------------------------------
 if __name__ == "__main__":
-    try:
-        parser = argparse.ArgumentParser(
-            description="Launch the AI agent app with Streamlit or React frontend."
-        )
-        parser.add_argument(
-            "--frontend",
-            choices=["streamlit", "react"],
-            default="streamlit",
-            help="Frontend to launch. Defaults to streamlit.",
-        )
-        args = parser.parse_args()
-
-        # Start Redis
-        start_redis()
-        time.sleep(2)
-
-        # Start Backend in Thread
-        backend_thread = threading.Thread(target=run_backend)
-        backend_thread.daemon = True
-        backend_thread.start()
-
-        time.sleep(3)
-
-        # Start Frontend (main thread)
-        if args.frontend == "react":
-            run_react_frontend()
-        else:
-            run_streamlit_frontend()
-
-    except Exception as e:
-        logger.exception(f"Launcher error: {str(e)}")
+    sys.exit(main())
