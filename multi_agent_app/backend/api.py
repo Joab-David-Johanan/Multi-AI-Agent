@@ -17,6 +17,14 @@ from multi_agent_app.core.agent import generate_response
 # Backend caching system (exact cache + semantic cache)
 from multi_agent_app.cache.cache_manager import check_cache, store_all
 
+# Evaluation runner for golden dataset checks
+from multi_agent_app.evaluation.evaluator import run_evaluation
+from multi_agent_app.evaluation.evaluation_store import (
+    clear_evaluation_runs,
+    list_evaluation_runs,
+    save_evaluation_run,
+)
+
 # Observability stack
 # Prometheus collects metrics and Grafana visualizes them
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -115,6 +123,13 @@ class RequestState(BaseModel):
 
     # Enable backend caching (exact + semantic)
     enable_cache: bool = True
+
+
+class EvaluationRequest(BaseModel):
+    llm_type: str
+    model_name: str
+    temperature: float = 0
+    allow_search: bool = False
 
 
 # ---------------------------------------------------------
@@ -280,6 +295,97 @@ async def chat_endpoint(request: RequestState):
             detail=str(
                 CustomException(
                     "Failed to get AI response",
+                    error_detail=e,
+                )
+            ),
+        )
+
+
+# ---------------------------------------------------------
+# EVALUATION ENDPOINT
+# Runs the backend-owned golden dataset against a selected model
+# ---------------------------------------------------------
+@app.post("/evaluate")
+async def evaluate_endpoint(request: EvaluationRequest):
+
+    logger.info(f"Evaluation LLM Type: {request.llm_type}")
+
+    if request.llm_type not in settings.ALLOWED_LLM_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid llm type")
+
+    logger.info(f"Evaluation Model Name: {request.model_name}")
+
+    if (
+        request.model_name not in settings.ALLOWED_GROQ_MODEL_NAMES
+        and request.model_name not in settings.ALLOWED_OPENAI_MODEL_NAMES
+    ):
+        raise HTTPException(status_code=400, detail="Invalid model name")
+
+    if request.temperature not in settings.ALLOWED_TEMPERATURE_VALUES:
+        raise HTTPException(status_code=400, detail="Invalid temperature value")
+
+    try:
+        result = await run_evaluation(
+            request.llm_type,
+            request.model_name,
+            request.temperature,
+            request.allow_search,
+        )
+
+        return save_evaluation_run(result)
+
+    except Exception as e:
+
+        ERROR_COUNT.inc()
+
+        logger.error(f"Evaluation error: {str(e)}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(
+                CustomException(
+                    "Failed to evaluate AI response",
+                    error_detail=e,
+                )
+            ),
+        )
+
+
+@app.get("/evaluations")
+async def list_evaluations_endpoint():
+    try:
+        return {"runs": list_evaluation_runs()}
+
+    except Exception as e:
+        ERROR_COUNT.inc()
+        logger.error(f"Evaluation history error: {str(e)}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(
+                CustomException(
+                    "Failed to load evaluation history",
+                    error_detail=e,
+                )
+            ),
+        )
+
+
+@app.delete("/evaluations")
+async def clear_evaluations_endpoint():
+    try:
+        clear_evaluation_runs()
+        return {"cleared": True}
+
+    except Exception as e:
+        ERROR_COUNT.inc()
+        logger.error(f"Evaluation history clear error: {str(e)}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(
+                CustomException(
+                    "Failed to clear evaluation history",
                     error_detail=e,
                 )
             ),
