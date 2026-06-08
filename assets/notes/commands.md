@@ -279,3 +279,101 @@ React package files changed:
 docker compose --profile react build react
 docker compose --profile react up -d --force-recreate react
 ```
+
+---
+
+## 11. Launcher Script Commands
+
+`launcher.py` is a small Python helper that wraps the most common Docker Compose commands.
+
+Use it from the project root:
+
+```bash
+cd C:\Coding\Projects\AI_agent_app
+```
+
+Start the default frontend, which is Streamlit:
+
+```bash
+python launcher.py
+```
+
+This runs:
+
+```bash
+docker compose --profile streamlit up -d --build
+```
+
+Then it opens:
+
+```text
+http://127.0.0.1:8501
+```
+
+Start Streamlit explicitly:
+
+```bash
+python launcher.py --frontend streamlit
+```
+
+Start the React frontend:
+
+```bash
+python launcher.py --frontend react
+```
+
+This runs:
+
+```bash
+docker compose --profile react up -d --build
+```
+
+Then it opens:
+
+```text
+http://127.0.0.1:5173
+```
+
+Stop containers for both frontend profiles:
+
+```bash
+python launcher.py --down
+```
+
+This runs:
+
+```bash
+docker compose --profile streamlit --profile react down
+```
+
+Supported launcher arguments:
+
+```text
+--frontend streamlit   Start the Streamlit frontend. This is the default.
+--frontend react       Start the React frontend.
+--down                 Stop and remove the app's Docker Compose containers.
+```
+
+### How argparse Works Here
+
+`launcher.py` uses Python's `argparse` module to read command-line options.
+
+In this project:
+
+- `--frontend` accepts only `streamlit` or `react`.
+- If `--frontend` is not provided, argparse uses `streamlit` as the default.
+- `--down` is a boolean flag. If it appears in the command, its value becomes `True`.
+- After parsing, the script either starts the selected frontend or stops the containers.
+
+Example:
+
+```bash
+python launcher.py --frontend react
+```
+
+Argparse turns that command into values roughly like this:
+
+```text
+frontend = "react"
+down = False
+```
