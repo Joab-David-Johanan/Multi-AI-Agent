@@ -130,6 +130,7 @@ class EvaluationRequest(BaseModel):
     model_name: str
     temperature: float = 0
     allow_search: bool = False
+    use_llm_judge: bool = False
 
 
 # ---------------------------------------------------------
@@ -330,6 +331,7 @@ async def evaluate_endpoint(request: EvaluationRequest):
             request.model_name,
             request.temperature,
             request.allow_search,
+            request.use_llm_judge,
         )
 
         return save_evaluation_run(result)
