@@ -449,7 +449,6 @@ function App() {
       <section className="workspace" aria-label="Chat workspace">
         <header className="topbar">
           <div>
-            <p className="eyebrow">Production-style React frontend</p>
             <h2>Ask, compare, and inspect every agent response.</h2>
           </div>
           <div className="status-pill">

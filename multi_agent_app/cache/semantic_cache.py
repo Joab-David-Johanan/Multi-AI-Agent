@@ -1,11 +1,21 @@
 import numpy as np
-from sentence_transformers import SentenceTransformer
 from typing import Optional, Dict, Any
 
 # ----------------------------
-# Load embedding model once
+# Load embedding model lazily
 # ----------------------------
-model = SentenceTransformer("all-MiniLM-L6-v2")
+model = None
+
+
+def get_model():
+    global model
+
+    if model is None:
+        from sentence_transformers import SentenceTransformer
+
+        model = SentenceTransformer("all-MiniLM-L6-v2")
+
+    return model
 
 # similarity threshold (tune)
 SIM_THRESHOLD = 0.88
@@ -29,7 +39,7 @@ semantic_store: Dict[str, Dict[str, Any]] = {}
 # ----------------------------
 def get_embedding(text: str):
     """Generate embedding for text"""
-    return model.encode(text)
+    return get_model().encode(text)
 
 
 def cosine_similarity(a, b):
