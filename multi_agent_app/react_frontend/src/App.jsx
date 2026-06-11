@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000/chat'
@@ -19,6 +19,103 @@ const starterPrompts = [
   'Explain semantic caching in this app',
   'Compare session cache and backend cache',
 ]
+
+const STREAM_CHAR_DELAY_MS = 28
+const STREAM_BATCH_SIZE = 2
+const STREAM_METADATA_MARKER = '\n[[STREAM_METADATA]]'
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
+}
+
+function buildChatHistoryText(messages, runtimeSummary, threadId) {
+  const timestamp = new Date().toISOString()
+  const lines = [
+    'Multi Agent Chat History',
+    `Exported: ${timestamp}`,
+    `Thread: ${threadId}`,
+    `Runtime: ${runtimeSummary}`,
+    '',
+  ]
+
+  messages.forEach((message, index) => {
+    lines.push(`--- Message ${index + 1} ---`)
+    lines.push(`Role: ${message.role}`)
+
+    if (message.assistant) {
+      lines.push(`Assistant: ${message.assistant}`)
+    }
+
+    if (message.meta) {
+      lines.push(`Meta: ${message.meta}`)
+    }
+
+    if (message.details) {
+      lines.push(`Mode: ${message.details.mode}`)
+      lines.push(`Routing mode: ${message.details.routingMode}`)
+      lines.push(`Selected assistant: ${message.details.selectedAssistant}`)
+      lines.push(`Assistant used: ${message.details.assistant}`)
+      lines.push(`Suggested assistant: ${message.details.suggestedAssistant}`)
+      lines.push(`Provider: ${message.details.provider}`)
+      lines.push(`Model: ${message.details.model}`)
+      lines.push(`Temperature: ${message.details.temperature}`)
+      lines.push(`Memory: ${message.details.memory}`)
+      lines.push(`Tool: ${message.details.tool}`)
+      lines.push(`Backend cache: ${message.details.backendCache}`)
+      lines.push(`Session cache: ${message.details.sessionCache}`)
+      lines.push(`Cache result: ${message.details.cacheResult}`)
+      lines.push(`Streaming: ${message.details.streaming}`)
+      lines.push(`Suggestions: ${message.details.suggestions}`)
+      lines.push(`Time: ${message.details.timeSeconds} seconds`)
+    }
+
+    lines.push('')
+    lines.push(message.content || '')
+    lines.push('')
+  })
+
+  return lines.join('\n')
+}
+
+function downloadTextFile(filename, text) {
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+function inferAssistantForQuery(query) {
+  const normalized = query.toLowerCase()
+
+  const medicalPattern =
+    /\b(symptom|symptoms|disease|diagnosis|diagnose|treatment|medicine|medical|health|doctor|patient|fever|pain|infection|diabetes|blood pressure|cancer|vaccine|therapy)\b/
+  const financialPattern =
+    /\b(finance|financial|stock|stocks|investment|investing|portfolio|market|crypto|bitcoin|ethereum|loan|interest rate|inflation|revenue|profit|budget|tax|bank|trading)\b/
+  const legalPattern =
+    /\b(law|legal|contract|lawsuit|court|case law|rights|liability|regulation|compliance|attorney|lawyer|jurisdiction|clause|tenant|landlord|copyright|patent|trademark)\b/
+
+  if (medicalPattern.test(normalized)) {
+    return 'Medical'
+  }
+
+  if (financialPattern.test(normalized)) {
+    return 'Financial'
+  }
+
+  if (legalPattern.test(normalized)) {
+    return 'Law'
+  }
+
+  return 'General'
+}
 
 const initialMessages = [
   {
@@ -116,8 +213,11 @@ function App() {
   const [allowSearch, setAllowSearch] = useState(false)
   const [enableCache, setEnableCache] = useState(true)
   const [enableMemory, setEnableMemory] = useState(false)
+  const [enableSuggestions, setEnableSuggestions] = useState(false)
+  const [enableStreaming, setEnableStreaming] = useState(false)
+  const [routingMode, setRoutingMode] = useState('auto')
   const [messages, setMessages] = useState(initialMessages)
-  const [suggestions, setSuggestions] = useState(starterPrompts)
+  const [suggestions, setSuggestions] = useState([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isEvaluating, setIsEvaluating] = useState(false)
@@ -131,21 +231,26 @@ function App() {
   const [expandedDashboardRun, setExpandedDashboardRun] = useState('')
   const [isLoadingEvaluations, setIsLoadingEvaluations] = useState(false)
   const [threadId, setThreadId] = useState(createThreadId)
+  const chatEndRef = useRef(null)
 
   const currentModels = providerModels[llmType]
 
   const runtimeSummary = useMemo(() => {
+    const expertSummary =
+      routingMode === 'manual'
+        ? [assistantType, llmType, modelName, `temperature ${temperature.toFixed(1)}`]
+        : ['auto routing']
+
     return [
-      assistantType,
-      llmType,
-      modelName,
-      `temperature ${temperature.toFixed(1)}`,
+      ...expertSummary,
       enableMemory ? 'memory on' : 'memory off',
       enableCache ? 'cache on' : 'cache off',
+      enableSuggestions ? 'suggestions on' : 'suggestions off',
+      enableStreaming ? 'streaming on' : 'streaming off',
       evaluationMode ? 'evaluation mode' : 'chat mode',
       useLlmJudge ? 'judge on' : 'judge off',
     ].join(' / ')
-  }, [assistantType, enableCache, enableMemory, evaluationMode, llmType, modelName, temperature, useLlmJudge])
+  }, [assistantType, enableCache, enableMemory, enableStreaming, enableSuggestions, evaluationMode, llmType, modelName, routingMode, temperature, useLlmJudge])
 
   function handleProviderChange(nextProvider) {
     setLlmType(nextProvider)
@@ -154,9 +259,15 @@ function App() {
 
   function resetConversation() {
     setMessages(initialMessages)
-    setSuggestions(starterPrompts)
+    setSuggestions(enableSuggestions && !enableStreaming ? starterPrompts : [])
     setThreadId(createThreadId())
     setError('')
+  }
+
+  function downloadChatHistory() {
+    const text = buildChatHistoryText(messages, runtimeSummary, threadId)
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    downloadTextFile(`chat-history-${timestamp}.txt`, text)
   }
 
   async function sendMessage(messageText = input) {
@@ -175,10 +286,36 @@ function App() {
     setMessages((currentMessages) => [...currentMessages, userMessage])
     setInput('')
     setError('')
+    if (enableStreaming) {
+      setSuggestions([])
+    }
     setIsLoading(true)
 
     const startedAt = new Date().getTime()
-    const requestAssistant = assistantType
+    const recommendedAssistant = inferAssistantForQuery(trimmedMessage)
+    const requestAssistant = routingMode === 'auto' ? recommendedAssistant : assistantType
+    const routingMeta =
+      routingMode === 'auto'
+        ? `auto route: ${recommendedAssistant}`
+        : recommendedAssistant === assistantType
+          ? 'manual route'
+          : `manual route: ${assistantType}, suggested ${recommendedAssistant}`
+    const baseDetails = {
+      mode: routingMeta,
+      routingMode,
+      selectedAssistant: assistantType,
+      assistant: requestAssistant,
+      suggestedAssistant: recommendedAssistant,
+      provider: llmType,
+      model: modelName,
+      temperature: temperature.toFixed(1),
+      memory: enableMemory,
+      tool: allowSearch,
+      backendCache: enableCache,
+      sessionCache: false,
+      streaming: enableStreaming,
+      suggestions: enableSuggestions,
+    }
 
     const payload = {
       assistant_type: requestAssistant,
@@ -187,27 +324,157 @@ function App() {
       messages: [trimmedMessage],
       temperature,
       allow_search: allowSearch,
-      streaming: false,
+      streaming: enableStreaming,
       thread_id: threadId,
       enable_memory: enableMemory,
       enable_cache: enableCache,
     }
 
     try {
-      const response = await fetch(BACKEND_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        enableStreaming ? BACKEND_URL.replace(/\/chat$/, '/chat-stream') : BACKEND_URL,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
         },
-        body: JSON.stringify(payload),
-      })
+      )
 
       if (!response.ok) {
         throw new Error(await response.text())
       }
 
-      const data = await response.json()
       const duration = ((new Date().getTime() - startedAt) / 1000).toFixed(2)
+
+      if (enableStreaming) {
+        let streamBuffer = ''
+        let metadataBuffer = ''
+        let isReadingMetadata = false
+        const assistantMessage = {
+          role: 'assistant',
+          assistant: requestAssistant,
+          content: '',
+          meta: `${routingMeta} / streaming / ${duration}s`,
+          details: {
+            ...baseDetails,
+            cacheResult: 'streaming_no_cache',
+            timeSeconds: duration,
+          },
+        }
+
+        setMessages((currentMessages) => [...currentMessages, assistantMessage])
+
+        const reader = response.body?.getReader()
+        if (!reader) {
+          throw new Error('Streaming response is not readable.')
+        }
+
+        const decoder = new TextDecoder()
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) {
+            break
+          }
+
+          const chunk = decoder.decode(value, { stream: true })
+          if (isReadingMetadata) {
+            metadataBuffer += chunk
+            continue
+          }
+
+          const combinedChunk = streamBuffer + chunk
+          const markerIndex = combinedChunk.indexOf(STREAM_METADATA_MARKER)
+          const safeLength = Math.max(
+            0,
+            combinedChunk.length - STREAM_METADATA_MARKER.length + 1,
+          )
+
+          let displayBuffer = ''
+
+          if (markerIndex >= 0) {
+            displayBuffer = combinedChunk.slice(0, markerIndex)
+            metadataBuffer = combinedChunk.slice(markerIndex + STREAM_METADATA_MARKER.length)
+            streamBuffer = ''
+            isReadingMetadata = true
+          } else {
+            displayBuffer = combinedChunk.slice(0, safeLength)
+            streamBuffer = combinedChunk.slice(safeLength)
+            metadataBuffer = ''
+          }
+
+          while (displayBuffer.length > 0) {
+            const batch = displayBuffer.slice(0, STREAM_BATCH_SIZE)
+            displayBuffer = displayBuffer.slice(STREAM_BATCH_SIZE)
+
+            setMessages((currentMessages) => {
+              const nextMessages = [...currentMessages]
+              const lastMessage = nextMessages[nextMessages.length - 1]
+              nextMessages[nextMessages.length - 1] = {
+                ...lastMessage,
+                content: `${lastMessage.content}${batch}`,
+              }
+              return nextMessages
+            })
+
+            await wait(STREAM_CHAR_DELAY_MS)
+          }
+        }
+
+        if (!isReadingMetadata && streamBuffer.length > 0) {
+          while (streamBuffer.length > 0) {
+            const batch = streamBuffer.slice(0, STREAM_BATCH_SIZE)
+            streamBuffer = streamBuffer.slice(STREAM_BATCH_SIZE)
+
+            setMessages((currentMessages) => {
+              const nextMessages = [...currentMessages]
+              const lastMessage = nextMessages[nextMessages.length - 1]
+              nextMessages[nextMessages.length - 1] = {
+                ...lastMessage,
+                content: `${lastMessage.content}${batch}`,
+              }
+              return nextMessages
+            })
+
+            await wait(STREAM_CHAR_DELAY_MS)
+          }
+        }
+
+        if (isReadingMetadata && metadataBuffer.trim()) {
+          try {
+            const metadata = JSON.parse(metadataBuffer.trim())
+            setSuggestions(
+              enableSuggestions && metadata.suggestions?.length ? metadata.suggestions : [],
+            )
+          } catch {
+            setSuggestions([])
+          }
+        } else {
+          setSuggestions([])
+        }
+
+        const finalDuration = ((new Date().getTime() - startedAt) / 1000).toFixed(2)
+        setMessages((currentMessages) => {
+          const nextMessages = [...currentMessages]
+          const lastMessage = nextMessages[nextMessages.length - 1]
+          nextMessages[nextMessages.length - 1] = {
+            ...lastMessage,
+            meta: `${routingMeta} / streaming / ${finalDuration}s`,
+            details: {
+              ...lastMessage.details,
+              timeSeconds: finalDuration,
+              suggestions: enableSuggestions && isReadingMetadata,
+            },
+          }
+          return nextMessages
+        })
+
+        return
+      }
+
+      const data = await response.json()
 
       setMessages((currentMessages) => [
         ...currentMessages,
@@ -215,10 +482,17 @@ function App() {
           role: 'assistant',
           assistant: requestAssistant,
           content: data.response || 'No response returned.',
-          meta: `${data.cache || 'miss'} / ${duration}s`,
+          meta: `${routingMeta} / ${data.cache || 'miss'} / ${data.cache_decision?.reason || 'cache_checked'} / ${duration}s`,
+          details: {
+            ...baseDetails,
+            cacheResult: data.cache || 'miss',
+            timeSeconds: duration,
+          },
         },
       ])
-      setSuggestions(data.suggestions?.length ? data.suggestions : starterPrompts)
+      setSuggestions(
+        enableSuggestions && data.suggestions?.length ? data.suggestions : [],
+      )
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Request failed'
       setError(message)
@@ -229,6 +503,12 @@ function App() {
           assistant: requestAssistant,
           content: 'The backend request failed. Check that FastAPI is running and reachable.',
           meta: 'Error',
+          details: {
+            ...baseDetails,
+            mode: 'error',
+            cacheResult: 'error',
+            timeSeconds: ((new Date().getTime() - startedAt) / 1000).toFixed(2),
+          },
         },
       ])
     } finally {
@@ -330,6 +610,14 @@ function App() {
     }
   }, [evaluationMode])
 
+  useEffect(() => {
+    setSuggestions(enableSuggestions && !enableStreaming ? starterPrompts : [])
+  }, [enableStreaming, enableSuggestions])
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ block: 'end' })
+  }, [messages.length])
+
   return (
     <main className="app-shell">
       <div className="animated-ribbon" aria-hidden="true">
@@ -341,70 +629,101 @@ function App() {
 
       <aside className="control-panel" aria-label="Assistant configuration">
         <div className="brand-lockup">
-          <div className="brand-mark">AI</div>
-          <div>
-            <p className="eyebrow">Multi Agent Console</p>
-            <h1>Agent workspace</h1>
-          </div>
+          <h1>Agent Console</h1>
         </div>
 
-        <section className="panel-section">
-          <label htmlFor="assistant-type">Assistant</label>
-          <select
-            id="assistant-type"
-            value={assistantType}
-            onChange={(event) => setAssistantType(event.target.value)}
-          >
-            {assistantTypes.map((assistant) => (
-              <option key={assistant}>{assistant}</option>
-            ))}
-          </select>
+        <section className="routing-card">
+          <div>
+            <p className="routing-kicker">Start here</p>
+            <h2>Agent routing</h2>
+          </div>
+          <div className="routing-choice" role="group" aria-label="Agent routing mode">
+            <button
+              className={routingMode === 'auto' ? 'active' : ''}
+              onClick={() => {
+                setRoutingMode('auto')
+                setEvaluationMode(false)
+              }}
+              type="button"
+            >
+              Auto
+            </button>
+            <button
+              className={routingMode === 'manual' ? 'active' : ''}
+              onClick={() => setRoutingMode('manual')}
+              type="button"
+            >
+              Manual
+            </button>
+          </div>
+          <p>
+            {routingMode === 'auto'
+              ? 'Ask naturally. The app picks the assistant and shows the route after each answer.'
+              : 'Choose the assistant, model, and runtime settings yourself.'}
+          </p>
         </section>
 
-        <section className="panel-section">
-          <label>Provider</label>
-          <div className="segmented-control" role="group" aria-label="LLM provider">
-            {Object.keys(providerModels).map((provider) => (
-              <button
-                className={llmType === provider ? 'active' : ''}
-                key={provider}
-                onClick={() => handleProviderChange(provider)}
-                type="button"
+        {routingMode === 'manual' && (
+          <>
+            <section className="panel-section">
+              <label htmlFor="assistant-type">Assistant</label>
+              <select
+                id="assistant-type"
+                value={assistantType}
+                onChange={(event) => setAssistantType(event.target.value)}
               >
-                {provider}
-              </button>
-            ))}
-          </div>
-        </section>
+                {assistantTypes.map((assistant) => (
+                  <option key={assistant}>{assistant}</option>
+                ))}
+              </select>
+            </section>
 
-        <section className="panel-section">
-          <label htmlFor="model-name">Model</label>
-          <select
-            id="model-name"
-            value={modelName}
-            onChange={(event) => setModelName(event.target.value)}
-          >
-            {currentModels.map((model) => (
-              <option key={model}>{model}</option>
-            ))}
-          </select>
-        </section>
+            <section className="panel-section">
+              <label>Provider</label>
+              <div className="segmented-control" role="group" aria-label="LLM provider">
+                {Object.keys(providerModels).map((provider) => (
+                  <button
+                    className={llmType === provider ? 'active' : ''}
+                    key={provider}
+                    onClick={() => handleProviderChange(provider)}
+                    type="button"
+                  >
+                    {provider}
+                  </button>
+                ))}
+              </div>
+            </section>
 
-        <section className="panel-section">
-          <div className="range-row">
-            <label htmlFor="temperature">Temperature</label>
-            <span>{temperature.toFixed(1)}</span>
-          </div>
-          <input
-            id="temperature"
-            max="1"
-            min="0"
-            onChange={(event) => setTemperature(Number(event.target.value))}
-            step="0.1"
-            type="range"
-            value={temperature}
-          />
-        </section>
+            <section className="panel-section">
+              <label htmlFor="model-name">Model</label>
+              <select
+                id="model-name"
+                value={modelName}
+                onChange={(event) => setModelName(event.target.value)}
+              >
+                {currentModels.map((model) => (
+                  <option key={model}>{model}</option>
+                ))}
+              </select>
+            </section>
+
+            <section className="panel-section">
+              <div className="range-row">
+                <label htmlFor="temperature">Temperature</label>
+                <span>{temperature.toFixed(1)}</span>
+              </div>
+              <input
+                id="temperature"
+                max="1"
+                min="0"
+                onChange={(event) => setTemperature(Number(event.target.value))}
+                step="0.1"
+                type="range"
+                value={temperature}
+              />
+            </section>
+          </>
+        )}
 
         <section className="panel-section switch-list">
           <label className="switch-row">
@@ -433,16 +752,42 @@ function App() {
           </label>
           <label className="switch-row">
             <input
-              checked={evaluationMode}
-              onChange={(event) => setEvaluationMode(event.target.checked)}
+              checked={enableSuggestions}
+              onChange={(event) => setEnableSuggestions(event.target.checked)}
               type="checkbox"
             />
-            <span>Evaluation mode</span>
+            <span>Suggestions</span>
           </label>
+          <label className="switch-row">
+            <input
+              checked={enableStreaming}
+              onChange={(event) => setEnableStreaming(event.target.checked)}
+              type="checkbox"
+            />
+            <span>Streaming output</span>
+          </label>
+          {routingMode === 'manual' && (
+            <label className="switch-row">
+              <input
+                checked={evaluationMode}
+                onChange={(event) => setEvaluationMode(event.target.checked)}
+                type="checkbox"
+              />
+              <span>Evaluation mode</span>
+            </label>
+          )}
         </section>
 
-        <button className="secondary-action" onClick={resetConversation} type="button">
+        <button className="secondary-action reset-action" onClick={resetConversation} type="button">
           New conversation
+        </button>
+        <button
+          className="secondary-action download-action"
+          disabled={messages.length <= 1}
+          onClick={downloadChatHistory}
+          type="button"
+        >
+          Download chat history
         </button>
       </aside>
 
@@ -676,7 +1021,7 @@ function App() {
                 </article>
               ))}
 
-              {isLoading && (
+              {isLoading && !enableStreaming && (
                 <article className="message assistant loading-message">
                   <div className="message-header">
                     <span>{assistantType}</span>
@@ -685,17 +1030,20 @@ function App() {
                   <p>Thinking through the request...</p>
                 </article>
               )}
+              <div ref={chatEndRef} aria-hidden="true"></div>
             </section>
 
             {error && <div className="error-banner">{error}</div>}
 
-            <div className="suggestion-row" aria-label="Suggested prompts">
-              {suggestions.slice(0, 3).map((suggestion) => (
-                <button key={suggestion} onClick={() => sendMessage(suggestion)} type="button">
-                  {suggestion}
-                </button>
-              ))}
-            </div>
+            {enableSuggestions && suggestions.length > 0 && (
+              <div className="suggestion-row" aria-label="Suggested prompts">
+                {suggestions.slice(0, 3).map((suggestion) => (
+                  <button key={suggestion} onClick={() => sendMessage(suggestion)} type="button">
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <form className="composer" onSubmit={handleSubmit}>
               <input
