@@ -3,12 +3,15 @@ import requests
 import time
 import uuid
 import os
+import json
 
 from multi_agent_app.common.logger import get_logger
+from multi_agent_app.query_understanding import get_heuristic_cache_decision
 
 logger = get_logger(__name__)
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000/chat")
+STREAM_METADATA_MARKER = "\n[[STREAM_METADATA]]"
 
 
 def handle_chat(
@@ -70,7 +73,14 @@ def handle_chat(
         llm_type,
         selected_model,
         temperature,
+        allow_search,
+        enable_coversational_memory,
         user_input,
+    )
+    heuristic_cache_decision = get_heuristic_cache_decision(user_input)
+    session_cache_allowed = not (
+        heuristic_cache_decision
+        and not heuristic_cache_decision.cache.cacheable
     )
     ai_reply = ""
     suggestions = []
@@ -79,7 +89,11 @@ def handle_chat(
     # ----------------------------
     # Session Cache logic
     # ----------------------------
-    if enable_session_cache and cache_key in st.session_state.cache_store:
+    if (
+        enable_session_cache
+        and session_cache_allowed
+        and cache_key in st.session_state.cache_store
+    ):
         cache_hit = True
         start_time = time.time()
         ai_reply = st.session_state.cache_store[cache_key]
@@ -115,14 +129,53 @@ def handle_chat(
                     ai_reply = "Error"
                     duration = 0
                 else:
+                    stream_buffer = ""
+                    metadata_text = ""
+                    reading_metadata = False
+
                     with st.chat_message("assistant"):
                         placeholder = st.empty()
 
                         for chunk in response.iter_content(chunk_size=None):
                             if chunk:
                                 text = chunk.decode("utf-8")
-                                ai_reply += text
+
+                                if reading_metadata:
+                                    metadata_text += text
+                                    continue
+
+                                combined_text = stream_buffer + text
+                                marker_index = combined_text.find(STREAM_METADATA_MARKER)
+                                safe_length = max(
+                                    0,
+                                    len(combined_text)
+                                    - len(STREAM_METADATA_MARKER)
+                                    + 1,
+                                )
+
+                                if marker_index >= 0:
+                                    ai_reply += combined_text[:marker_index]
+                                    metadata_text = combined_text[
+                                        marker_index + len(STREAM_METADATA_MARKER) :
+                                    ]
+                                    reading_metadata = True
+                                else:
+                                    ai_reply += combined_text[:safe_length]
+                                    stream_buffer = combined_text[safe_length:]
+
                                 placeholder.markdown(ai_reply)
+
+                    if not reading_metadata and stream_buffer:
+                        ai_reply += stream_buffer
+                        stream_buffer = ""
+                        placeholder.markdown(ai_reply)
+
+                    if enable_suggestions and metadata_text.strip():
+                        try:
+                            metadata = json.loads(metadata_text.strip())
+                            suggestions = metadata.get("suggestions", [])
+                        except json.JSONDecodeError:
+                            suggestions = []
 
                     duration = round(time.time() - start_time, 2)
 
@@ -141,7 +194,12 @@ def handle_chat(
                     else:
                         suggestions = []
                     cache_type = data.get("cache", "miss")
-                    if enable_session_cache and cache_type == "miss":
+                    cache_decision = data.get("cache_decision", {})
+                    if (
+                        enable_session_cache
+                        and cache_type == "miss"
+                        and cache_decision.get("cacheable", True)
+                    ):
                         st.session_state.cache_store[cache_key] = ai_reply
                 else:
                     st.error(response.text)

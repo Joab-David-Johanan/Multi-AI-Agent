@@ -1,5 +1,7 @@
-import numpy as np
+import time
 from typing import Optional, Dict, Any
+
+import numpy as np
 
 # ----------------------------
 # Load embedding model lazily
@@ -28,7 +30,8 @@ SIM_THRESHOLD = 0.88
 #       "response": str,
 #       "assistant_type": str,
 #       "llm_type": str,
-#       "tool_enabled": bool
+#       "tool_enabled": bool,
+#       "expires_at": float
 #   }
 # }
 semantic_store: Dict[str, Dict[str, Any]] = {}
@@ -67,6 +70,9 @@ def semantic_lookup(query: str, config: dict, tool_enabled: bool) -> Optional[st
     for stored_query, data in semantic_store.items():
 
         # 🔒 Context isolation
+        if data.get("expires_at", 0) <= time.time():
+            continue
+
         if data["assistant_type"] != config["assistant_type"]:
             continue
 
@@ -93,10 +99,15 @@ def semantic_lookup(query: str, config: dict, tool_enabled: bool) -> Optional[st
 # Store
 # ----------------------------
 def semantic_store_response(
-    query: str, response: str, config: dict, tool_enabled: bool
+    query: str,
+    response: str,
+    config: dict,
+    tool_enabled: bool,
+    ttl_seconds: int = 3600,
 ):
     """Store query + response in semantic cache with context metadata"""
     emb = get_embedding(query)
+    ttl_seconds = max(int(ttl_seconds or 3600), 1)
 
     semantic_store[query] = {
         "embedding": emb,
@@ -104,6 +115,7 @@ def semantic_store_response(
         "assistant_type": config["assistant_type"],
         "llm_type": config["llm_type"],
         "tool_enabled": tool_enabled,
+        "expires_at": time.time() + ttl_seconds,
     }
 
 

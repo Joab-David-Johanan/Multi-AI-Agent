@@ -1,21 +1,6 @@
-from langchain_groq import ChatGroq
-from langchain_core.messages import HumanMessage
+from multi_agent_app.query_understanding.classifier import (
+    classify_query,
+    classify_query_with_llm,
+)
 
-CLASSIFIER_PROMPT = """
-Classify the query into exactly one word:
-weather, news, crypto, stock, static, general.
-Return only the word.
-"""
-
-
-async def classify_query(query: str) -> str:
-    llm = ChatGroq(
-        model="llama-3.1-8b-instant",
-        temperature=0,
-    )
-
-    response = await llm.ainvoke(
-        [HumanMessage(content=CLASSIFIER_PROMPT + "\n\nQuery: " + query)]
-    )
-
-    return response.content.strip().lower()
+__all__ = ["classify_query", "classify_query_with_llm"]

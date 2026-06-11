@@ -16,6 +16,7 @@ from multi_agent_app.core.agent import generate_response
 
 # Backend caching system (exact cache + semantic cache)
 from multi_agent_app.cache.cache_manager import check_cache, store_all
+from multi_agent_app.query_understanding import understand_query
 
 # Evaluation runner for golden dataset checks
 from multi_agent_app.evaluation.evaluator import run_evaluation
@@ -31,6 +32,12 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from prometheus_client import Counter, Histogram
 
 logger = get_logger(__name__)
+
+
+def to_response_dict(model):
+    if hasattr(model, "model_dump"):
+        return model.model_dump()
+    return model.dict()
 
 # ---------------------------------------------------------
 # FastAPI application instance
@@ -205,7 +212,25 @@ async def chat_endpoint(request: RequestState):
             "temperature": request.temperature,
             "assistant_type": request.assistant_type,
             "llm_type": request.llm_type,
+            "allow_search": request.allow_search,
         }
+
+        # ---------------------------------------------------------
+        # QUERY UNDERSTANDING
+        # ---------------------------------------------------------
+        # Classify/decompose before cache lookup so vague follow-ups,
+        # prompt-injection attempts, malformed text, and contextual
+        # transformations do not accidentally reuse cached answers.
+        # ---------------------------------------------------------
+        understanding = await understand_query(
+            query,
+            {
+                "assistant_type": request.assistant_type,
+                "allow_search": request.allow_search,
+                "enable_memory": request.enable_memory,
+            },
+        )
+        cache_decision = to_response_dict(understanding.cache)
 
         # ---------------------------------------------------------
         # BACKEND CACHE CHECK
@@ -223,6 +248,7 @@ async def chat_endpoint(request: RequestState):
                 query,
                 cache_config,
                 request.allow_search,
+                understanding,
             )
 
             if cached_response:
@@ -239,6 +265,8 @@ async def chat_endpoint(request: RequestState):
                     "response": cached_response,
                     "suggestions": [],
                     "cache": cache_type,
+                    "cache_decision": cache_decision,
+                    "query_understanding": to_response_dict(understanding),
                 }
 
         # ---------------------------------------------------------
@@ -268,9 +296,14 @@ async def chat_endpoint(request: RequestState):
                     result["answer"],
                     cache_config,
                     request.allow_search,
+                    understanding,
                 )
 
-                logger.info("Stored response in cache")
+                logger.info(
+                    "Cache store evaluated: "
+                    f"{understanding.cache.cacheable} "
+                    f"({understanding.cache.reason})"
+                )
 
             except Exception as cache_err:
 
@@ -284,6 +317,8 @@ async def chat_endpoint(request: RequestState):
             "response": result["answer"],
             "suggestions": result["suggestions"],
             "cache": "miss",
+            "cache_decision": cache_decision,
+            "query_understanding": to_response_dict(understanding),
         }
 
     except Exception as e:
