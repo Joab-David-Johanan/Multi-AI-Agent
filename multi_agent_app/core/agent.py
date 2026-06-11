@@ -1,12 +1,15 @@
+import json
+import re
+
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-from langchain_tavily import TavilySearch
 from fastapi.responses import StreamingResponse
-import asyncio
 
 
 from multi_agent_app.config.settings import settings
-from multi_agent_app.core.helper import get_llm, get_agent, get_cached_search
+from multi_agent_app.core.helper import get_llm, get_agent
 from multi_agent_app.core.helper import TAVILY_TOOL
+
+STREAM_METADATA_MARKER = "\n[[STREAM_METADATA]]"
 
 
 GREETING_INPUTS = {
@@ -77,13 +80,121 @@ def get_small_talk_response(assistant_type: str, query: str):
     return None
 
 
-def as_streaming_response(text: str):
-    async def fake_stream():
-        for char in text:
-            yield char
-            await asyncio.sleep(0.01)
+def parse_agent_content(content: str):
+    answer = content
+    suggestions = []
 
-    return StreamingResponse(fake_stream(), media_type="text/plain")
+    suggestion_match = re.search(r"\bSUGGESTIONS\s*:?", content)
+    if suggestion_match:
+        parts = [
+            content[: suggestion_match.start()],
+            content[suggestion_match.end() :],
+        ]
+        answer = parts[0].replace("ANSWER:", "").strip()
+
+        suggestion_lines = parts[1].strip().split("\n")
+        for line in suggestion_lines:
+            line = line.strip()
+            if line and line[0].isdigit():
+                suggestions.append(line[2:].strip())
+
+    return answer, suggestions
+
+
+def text_streaming_response(text: str):
+    async def stream_once():
+        yield text
+
+    return StreamingResponse(stream_once(), media_type="text/plain")
+
+
+async def invoke_agent(agent, state, config):
+    if config:
+        return await agent.ainvoke(state, config=config)
+
+    return await agent.ainvoke(state)
+
+
+def extract_stream_content(event) -> str:
+    message = event[0] if isinstance(event, tuple) else event
+    content = getattr(message, "content", "")
+
+    if isinstance(content, str):
+        return content
+
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                parts.append(item.get("text") or item.get("content") or "")
+        return "".join(parts)
+
+    return ""
+
+
+def get_visible_stream_answer(raw_text: str):
+    text = raw_text.lstrip()
+    answer_prefix = "ANSWER:"
+    suggestion_marker = "SUGGESTIONS"
+
+    if answer_prefix.startswith(text) and text != answer_prefix:
+        return None, False
+
+    if text.startswith(answer_prefix):
+        text = text[len(answer_prefix) :].lstrip()
+
+    suggestion_match = re.search(r"\bSUGGESTIONS\s*:?", text)
+    if suggestion_match:
+        text = text[: suggestion_match.start()].rstrip()
+        return text, True
+
+    stripped_text = text.rstrip()
+    upper_text = stripped_text.upper()
+    for marker_length in range(len(suggestion_marker) - 1, 0, -1):
+        partial_marker = suggestion_marker[:marker_length]
+        if upper_text.endswith(partial_marker):
+            visible_text = stripped_text[: -marker_length].rstrip()
+            return visible_text, False
+
+    return text, False
+
+
+def agent_streaming_response(agent, state, config):
+    async def stream_answer():
+        raw_text = ""
+        emitted_length = 0
+
+        stream_kwargs = {"stream_mode": "messages"}
+        if config:
+            stream_kwargs["config"] = config
+
+        stream = agent.astream(state, **stream_kwargs)
+
+        async for event in stream:
+            chunk = extract_stream_content(event)
+            if not chunk:
+                continue
+
+            raw_text += chunk
+            visible_text, should_stop = get_visible_stream_answer(raw_text)
+            if visible_text is None:
+                continue
+
+            next_chunk = visible_text[emitted_length:]
+            if next_chunk:
+                emitted_length = len(visible_text)
+                yield next_chunk
+
+            if should_stop:
+                continue
+
+        _, suggestions = parse_agent_content(raw_text)
+        if suggestions:
+            yield STREAM_METADATA_MARKER + json.dumps({"suggestions": suggestions})
+
+    return StreamingResponse(stream_answer(), media_type="text/plain")
 
 
 # Main function responsible for generating AI responses
@@ -106,7 +217,7 @@ async def generate_response(
 
     if small_talk_response:
         if enable_streaming:
-            return as_streaming_response(small_talk_response["answer"])
+            return text_streaming_response(small_talk_response["answer"])
 
         return small_talk_response
 
@@ -195,30 +306,12 @@ async def generate_response(
     config = {"configurable": {"thread_id": thread_id}} if enable_memory else None
 
     if streaming:
-
-        # Run agent normally first
-        if enable_memory:
-            response = await agent.ainvoke(state, config=config)
-        else:
-            response = await agent.ainvoke(state)
-
-        final_text = ""
-
-        if "messages" in response:
-            for message in reversed(response["messages"]):
-                if isinstance(message, AIMessage):
-                    final_text = message.content
-                    break
-
-        return as_streaming_response(final_text)
+        return agent_streaming_response(agent, state, config)
 
     else:
 
         # Invoke agent asynchronously and no streaming response
-        if enable_memory:
-            response = await agent.ainvoke(state, config=config)
-        else:
-            response = await agent.ainvoke(state)
+        response = await invoke_agent(agent, state, config)
 
         # Check messages list
         if "messages" in response:
@@ -227,19 +320,7 @@ async def generate_response(
 
                     content = message.content
 
-                    answer = content
-                    suggestions = []
-
-                    if "SUGGESTIONS:" in content:
-                        parts = content.split("SUGGESTIONS:")
-                        answer = parts[0].replace("ANSWER:", "").strip()
-
-                        suggestion_lines = parts[1].strip().split("\n")
-
-                        for line in suggestion_lines:
-                            line = line.strip()
-                            if line and line[0].isdigit():
-                                suggestions.append(line[2:].strip())
+                    answer, suggestions = parse_agent_content(content)
 
                     return {"answer": answer, "suggestions": suggestions}
 
